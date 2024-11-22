@@ -12,13 +12,3 @@
     - выбирается пара случайных чисел $x_i=rand$[$\sigma_{min}$ $\sigma_{max}$], $y_i=rand[0$ $S_vmax]$;
     - при попадании точки с координатами $[x_i$ $y_i]$ в площадь под график $S_v(\sigma)$, значение $x_i$ принимается в качестве очередного значения случайной величины. В противном случае значения отбрасываются;
 2. Для каждого интервала методом трапеций определяется площадь $A_i$ и координата центра тяжести площади $A_i$ по оси $\sigma$, которая принимается как частота $σ_i$.
-
-
-
-
-
-
- <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" });
-</script>
