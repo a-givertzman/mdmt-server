@@ -6,7 +6,7 @@ type Float = f64;
 type OwnedSet<T> = Arc<[T]>;
 ///
 /// Ordering methods (similar to [Ord]) with given approximation.
-pub trait AppoxOrd<Rhs = Self> {
+pub trait ApproxOrd<Rhs = Self> {
     ///
     /// Compare with precision.
     fn approx_cmp(&self, rhs: &Rhs, pr: u8) -> Ordering;
@@ -16,7 +16,7 @@ pub trait AppoxOrd<Rhs = Self> {
 macro_rules! impl_approx_ord {
     ($($ty:ty),+) => {
         $(
-            impl AppoxOrd<$ty> for $ty {
+            impl ApproxOrd<$ty> for $ty {
                 fn approx_cmp(&self, rhs: &$ty, precision: u8) -> Ordering {
                     let base = 10 as $ty;
                     let pr = precision as i32;
@@ -46,7 +46,7 @@ enum DatasetType {
 impl DatasetType {
     ///
     /// Defines a type based on values and precision.
-    pub fn new<T: AppoxOrd>(values: &[T], precision: u8) -> Self {
+    pub fn new<T: ApproxOrd>(values: &[T], precision: u8) -> Self {
         use DatasetType::*;
         use Ordering::*;
         //
@@ -129,7 +129,7 @@ impl<T> Column<T> {
     pub fn new<S>(values: S, precision: u8) -> Self
     where
         S: Into<OwnedSet<T>> + Deref<Target = [T]>,
-        T: AppoxOrd,
+        T: ApproxOrd,
     {
         Self {
             ty: DatasetType::new(&values, precision),
@@ -152,7 +152,7 @@ pub enum Bound {
 }
 //
 //
-impl<T: AppoxOrd + std::fmt::Debug> Column<T> {
+impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
     ///
     /// Returns bounds of given value within internal dataset.
     pub fn get_bounds(&self, val: &T) -> Vec<Bound> {
@@ -301,8 +301,8 @@ where
 }
 //
 //
-impl<T: AppoxOrd + std::fmt::Debug> Table<T> {
-    pub fn get(&self, val: &[Option<T>]) -> Vec<Vec<T>> {
+impl<T: ApproxOrd + std::fmt::Debug> Table<T> {
+    pub fn get_unchecked(&self, val: &[Option<T>]) -> Vec<Vec<T>> {
         let mut values = vec![];
         for (id, val) in val
             .iter()
