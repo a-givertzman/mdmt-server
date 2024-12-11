@@ -1,6 +1,10 @@
 #![allow(unused)]
 //
-use std::{cmp::Ordering, ops::Deref, sync::Arc};
+use std::{
+    cmp::Ordering,
+    ops::{BitAnd, Deref},
+    sync::Arc,
+};
 //
 type Float = f64;
 type OwnedSet<T> = Arc<[T]>;
@@ -115,7 +119,7 @@ impl DatasetType {
 }
 ///
 /// Analyzed dataset, column of [Table] (see also [DatasetType]).
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Column<T> {
     ty: DatasetType,
     data: OwnedSet<T>,
@@ -138,17 +142,64 @@ impl<T> Column<T> {
         }
     }
 }
+//
+//
+impl<T> Deref for Column<T> {
+    type Target = [T];
+    //
+    //
+    fn deref(&self) -> &Self::Target {
+        self.data.deref()
+    }
+}
 ///
 /// Represents bound(s) of element within the collection.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum Bound {
     ///
-    /// Index of the exact element.
+    /// No bound.
+    None,
+    ///
+    /// Index of the match.
     Single(usize),
     ///
     /// Indexes of either two nearest neighbors,
     /// or the start and end of exact match range.
     Range(usize, usize),
+}
+//
+//
+impl BitAnd for Bound {
+    type Output = Self;
+    //
+    //
+    fn bitand(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Bound::Single(this), Bound::Single(other)) if this == other => Bound::Single(this),
+            (Bound::Single(id), Bound::Range(start, end))
+            | (Bound::Range(start, end), Bound::Single(id))
+                if (start..=end).contains(&id) =>
+            {
+                Bound::Single(id)
+            }
+            (Bound::Range(mut start1, mut end1), Bound::Range(mut start2, mut end2)) => {
+                if start2 < start1 {
+                    std::mem::swap(&mut start1, &mut start2);
+                    std::mem::swap(&mut end1, &mut end2);
+                }
+                if end1 < start2 {
+                    return Bound::None;
+                }
+                let start = start1.max(start2);
+                let end = end1.min(end2);
+                match start == end {
+                    true => Bound::Single(start),
+                    _ => Bound::Range(start, end),
+                }
+            }
+            _ => Bound::None,
+        }
+    }
 }
 //
 //
@@ -301,17 +352,71 @@ where
 }
 //
 //
-impl<T: ApproxOrd + std::fmt::Debug> Table<T> {
-    pub fn get_unchecked(&self, val: &[Option<T>]) -> Vec<Vec<T>> {
-        let mut values = vec![];
-        for (id, val) in val
-            .iter()
-            .enumerate()
-            .filter_map(|(id, val)| val.as_ref().map(|val| (id, val)))
-        {
-            todo!("main algorithm here using Column and friends")
-        }
-        values
+impl Table<Float> {
+    pub fn get_unchecked(&self, vals: &[Option<Float>]) -> Vec<Vec<Float>> {
+        let bounds = {
+            let mut val_bounds = vec![];
+            for (id, val) in vals
+                .iter()
+                .enumerate()
+                .filter_map(|(id, val)| val.as_ref().map(|val| (id, val)))
+            {
+                let bounds = self.columns[id].get_bounds(val);
+                val_bounds.push(bounds);
+            }
+            // dbg!(&val_bounds);
+            loop {
+                match (val_bounds.pop(), val_bounds.last_mut()) {
+                    (None, _) => return vec![],
+                    (Some(bounds), Some(last_bounds)) => {
+                        //
+                        // NOTE: switch between last_bounds and bounds may increase perf
+                        *last_bounds = last_bounds
+                            .iter()
+                            .copied()
+                            .flat_map(|last_bound| {
+                                bounds
+                                    .iter()
+                                    .copied()
+                                    .filter_map(|bound| match last_bound & bound {
+                                        Bound::None => None,
+                                        bound => Some(bound),
+                                    })
+                                    .collect::<Vec<Bound>>()
+                            })
+                            .collect();
+                    }
+                    (Some(mut last), None) => {
+                        last.dedup();
+                        break last;
+                    }
+                }
+            }
+        };
+        // dbg!(&bounds);
+        bounds
+            .into_iter()
+            .flat_map(|bound| match bound {
+                Bound::None => None,
+                Bound::Single(row_id) => {
+                    let mut vals = Vec::with_capacity(self.columns.len());
+                    for col in self.columns.iter() {
+                        let val = col[row_id];
+                        vals.push(val);
+                    }
+                    Some(vals)
+                }
+                Bound::Range(start, end) => {
+                    let mut vals = Vec::with_capacity(self.columns.len());
+                    let len = end - start + 1;
+                    for col in self.columns.iter() {
+                        let sum = (start..=end).map(|row_id| col[row_id]).sum::<Float>();
+                        vals.push(sum / len as Float);
+                    }
+                    Some(vals)
+                }
+            })
+            .collect()
     }
 }
 //
