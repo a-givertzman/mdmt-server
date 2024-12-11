@@ -281,8 +281,13 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
         }
         bounds
     }
-    //
-    // if given values are not monotonic, the output is meaningless
+    ///
+    /// Returns bounds of given value (`val`) placing in between elemnts of `vals`,
+    /// where `offset` represents the actual start index of `vals`.
+    /// Elements of `vals` are compared using [ApproxOrd] with given precision (`pr`).
+    ///
+    /// # Note
+    /// If `vals` is not monotonic, the output is _meaningless_.
     fn get_bounds_of_monotonic(vals: &[T], val: &T, pr: u8, offset: usize) -> Vec<Bound> {
         use Bound::*;
         //
