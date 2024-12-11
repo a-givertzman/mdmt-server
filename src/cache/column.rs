@@ -6,7 +6,7 @@ use super::OwnedSet;
 use crate::cache::bound::Bound;
 use std::{cmp::Ordering, ops::Deref};
 ///
-/// Ordering methods (similar to [Ord]) with given approximation.
+/// Ordering method (similar to [Ord]) with given approximation.
 pub(in crate::cache) trait ApproxOrd<Rhs = Self> {
     ///
     /// Compare with precision.
@@ -60,6 +60,8 @@ impl<T> Column<T> {
 //
 //
 impl<T: ApproxOrd> Column<T> {
+    ///
+    /// Returns inflection point IDs based on given values and precision.
     fn get_inflections(values: &[T], precision: u8) -> OwnedSet<usize> {
         use Ordering::*;
         //
