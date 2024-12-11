@@ -6,7 +6,7 @@ type Float = f64;
 type OwnedSet<T> = Arc<[T]>;
 ///
 /// Ordering methods (similar to [Ord]) with given approximation.
-pub trait ApproxOrd<Rhs = Self> {
+trait ApproxOrd<Rhs = Self> {
     ///
     /// Compare with precision.
     fn approx_cmp(&self, rhs: &Rhs, pr: u8) -> Ordering;
@@ -46,7 +46,7 @@ enum DatasetType {
 impl DatasetType {
     ///
     /// Defines a type based on values and precision.
-    pub fn new<T: ApproxOrd>(values: &[T], precision: u8) -> Self {
+    fn new<T: ApproxOrd>(values: &[T], precision: u8) -> Self {
         use DatasetType::*;
         use Ordering::*;
         //
@@ -116,7 +116,7 @@ impl DatasetType {
 ///
 /// Analyzed dataset, column of [Table] (see also [DatasetType]).
 #[derive(Clone)]
-pub struct Column<T> {
+struct Column<T> {
     ty: DatasetType,
     data: OwnedSet<T>,
     precision: u8,
@@ -126,7 +126,7 @@ pub struct Column<T> {
 impl<T> Column<T> {
     ///
     /// Returns an instance analyzed with given precision.
-    pub fn new<S>(values: S, precision: u8) -> Self
+    fn new<S>(values: S, precision: u8) -> Self
     where
         S: Into<OwnedSet<T>> + Deref<Target = [T]>,
         T: ApproxOrd,
@@ -141,7 +141,7 @@ impl<T> Column<T> {
 ///
 /// Represents bound(s) of element within the collection.
 #[derive(PartialEq, Debug)]
-pub enum Bound {
+enum Bound {
     ///
     /// Index of the exact element.
     Single(usize),
@@ -155,7 +155,7 @@ pub enum Bound {
 impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
     ///
     /// Returns bounds of given value within internal dataset.
-    pub fn get_bounds(&self, val: &T) -> Vec<Bound> {
+    fn get_bounds(&self, val: &T) -> Vec<Bound> {
         use DatasetType::*;
         use Ordering::*;
         //
