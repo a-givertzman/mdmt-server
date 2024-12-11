@@ -193,8 +193,6 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
     /// # Note
     /// If `vals` is not monotonic, the output is _meaningless_.
     fn get_bounds_of_monotonic(vals: &[T], val: &T, pr: u8, offset: usize) -> Vec<Bound> {
-        use Bound::*;
-        //
         let mut bounds = vec![];
         let dir = vals[0].approx_cmp(&vals[vals.len() - 1], pr);
         let insert_id = vals.partition_point(|data_val| {
@@ -203,11 +201,11 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
         });
         // println!(" - vals={:?}, {}", vals, insert_id);
         if insert_id == 0 {
-            bounds.push(Single(offset));
+            bounds.push(Bound::Single(offset));
         } else if insert_id == vals.len() {
-            bounds.push(Single(vals.len() - 1 + offset));
+            bounds.push(Bound::Single(vals.len() - 1 + offset));
         } else if let Ordering::Equal = vals[insert_id].approx_cmp(val, pr) {
-            bounds.push(Single(insert_id + offset));
+            bounds.push(Bound::Single(insert_id + offset));
             match dir {
                 Ordering::Less | Ordering::Greater => {
                     (1..)
@@ -217,7 +215,7 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
                             })
                         })
                         .for_each(|i| {
-                            bounds.push(Single(insert_id + i + offset));
+                            bounds.push(Bound::Single(insert_id + i + offset));
                         });
                 }
                 _ => unreachable!(),
@@ -237,7 +235,7 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
 
             let start = insert_id - 1 + offset;
             let end = insert_id + offset;
-            bounds.push(Range(start, end));
+            bounds.push(Bound::Range(start, end));
         }
         bounds
     }
