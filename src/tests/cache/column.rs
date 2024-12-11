@@ -15,40 +15,38 @@ fn approx_cmp_f64() {
 //
 //
 #[test]
-fn dataset_types() {
-    use DatasetType::*;
-    //
+fn get_inflextions() {
     #[rustfmt::skip]
          let test_data = [
              // 0
-             (vec![], 0, Empty),
-             (vec![1.], 1, Constant),
-             (vec![2., 2.], 1, Constant),
-             (vec![0., 1., 2.], 1, NonDecreasing),
-             (vec![0., 1., 2., 2.], 1, NonDecreasing),
-             (vec![0., 1., 1., 2.], 1, NonDecreasing),
-             (vec![2., 1., 0.], 1, NonIncreasing),
-             (vec![2., 2., 1., 0.], 1, NonIncreasing),
-             (vec![2., 1., 0., 0.], 1, NonIncreasing),
-             (vec![4., 4., 1., 4., 4.], 1, RangeMonotonic(vec![0, 2, 4].into())),
+             (vec![], 0, vec![].into()),
+             (vec![1.], 1, vec![0].into()),
+             (vec![2., 2.], 1, vec![0, 1].into()),
+             (vec![0., 1., 2.], 1, vec![0, 2].into()),
+             (vec![0., 1., 2., 2.], 1, vec![0, 3].into()),
+             (vec![0., 1., 1., 2.], 1, vec![0, 3].into()),
+             (vec![2., 1., 0.], 1, vec![0, 2].into()),
+             (vec![2., 2., 1., 0.], 1, vec![0, 3].into()),
+             (vec![2., 1., 0., 0.], 1, vec![0, 3].into()),
+             (vec![4., 4., 1., 4., 4.], 1, vec![0, 2, 4].into()),
              // 10
-             (vec![0., 0., 0., 0., 1.], 1, NonDecreasing),
-             (vec![1., 0., 0., 0., 0.], 1, NonIncreasing),
-             (vec![4., 0., 0., 0., 4.], 1, RangeMonotonic(vec![0, 3, 4].into())),
-             (vec![4., 0., 0., 0., 4., 0.], 1, RangeMonotonic(vec![0, 3, 4, 5].into())),
-             (vec![4., 4., -2., 4., 4.], 1, RangeMonotonic(vec![0, 2, 4].into())),
-             (vec![0., 0., 5., 0., 0., 5.], 1, RangeMonotonic(vec![0, 2, 4, 5].into())),
-             (vec![0., 0., 7., 0., 0., 7., 7., 7.], 1, RangeMonotonic(vec![0, 2, 4, 7].into())),
-             (vec![6., 5., 4., 3., 4., 5., 6.], 1, RangeMonotonic(vec![0, 3, 6].into())),
-             (vec![0., 1., 2., 3., 2., 1., 0., 1., 2., 3., 2., 1., 0.], 1, RangeMonotonic(vec![0, 3, 6, 9, 12].into())),
-             (vec![0., 0., 2., 2., 3., 3., 2., 2., 1., 1., 0., 0., 1., 0., 0.], 1, RangeMonotonic(vec![0, 5, 11, 12, 14].into())),
+             (vec![0., 0., 0., 0., 1.], 1, vec![0, 4].into()),
+             (vec![1., 0., 0., 0., 0.], 1, vec![0, 4].into()),
+             (vec![4., 0., 0., 0., 4.], 1, vec![0, 3, 4].into()),
+             (vec![4., 0., 0., 0., 4., 0.], 1, vec![0, 3, 4, 5].into()),
+             (vec![4., 4., -2., 4., 4.], 1, vec![0, 2, 4].into()),
+             (vec![0., 0., 5., 0., 0., 5.], 1, vec![0, 2, 4, 5].into()),
+             (vec![0., 0., 7., 0., 0., 7., 7., 7.], 1, vec![0, 2, 4, 7].into()),
+             (vec![6., 5., 4., 3., 4., 5., 6.], 1, vec![0, 3, 6].into()),
+             (vec![0., 1., 2., 3., 2., 1., 0., 1., 2., 3., 2., 1., 0.], 1, vec![0, 3, 6, 9, 12].into()),
+             (vec![0., 0., 2., 2., 3., 3., 2., 2., 1., 1., 0., 0., 1., 0., 0.], 1, vec![0, 5, 11, 12, 14].into()),
              // 20
              // NOTE: zig-zag shape like '/\/\/' gives values one-by-one
              // need to handle that somehow?
-             (vec![-1., 1., -0.5, 0.5, 0.], 1, RangeMonotonic(vec![0, 1, 2, 3, 4].into())),
+             (vec![-1., 1., -0.5, 0.5, 0.], 1, vec![0, 1, 2, 3, 4].into()),
          ];
     for (step, (values, precision, result)) in test_data.into_iter().enumerate() {
-        let actual = DatasetType::new(&values, precision);
+        let actual = Column::get_inflections(&values, precision);
         assert_eq!(actual, result, "step={} values={:?}", step, values);
     }
 }
@@ -60,8 +58,8 @@ fn monotonic_shape_bounds() {
     //                0   1   2   3   4   5   6   7    8    9   10   11
     let values = vec![0., 1., 2., 3., 2., 1., 0., 0., -1., -1., 10., 9.];
     let precsion = 4;
-    let datatype = DatasetType::new(&values, precsion);
-    println!("datatype={:?}", datatype);
+    let inflections = Column::get_inflections(&values, precsion);
+    println!("inflections={:?}", inflections);
     let column = Column::new(values, precsion);
     let test_data = [
         // 0
@@ -100,8 +98,8 @@ fn non_descresing_shape_bounds() {
     //                0   1   2   3   4   5   6   7
     let values = vec![0., 1., 1., 1., 2., 2., 3., 4.];
     let precsion = 4;
-    let datatype = DatasetType::new(&values, precsion);
-    println!("datatype={:?}", datatype);
+    let inflections = Column::get_inflections(&values, precsion);
+    println!("inflections={:?}", inflections);
     let column = Column::new(values, precsion);
     let test_data = [
         // 0
