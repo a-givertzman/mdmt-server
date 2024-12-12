@@ -71,13 +71,6 @@ fn get_unchecked() {
                                                         vec![0.0, 0.0, 0.0, 10.0],
                                                         vec![0.0, 1.0, 0.0, 11.0],
                                                         vec![0.0, 0.0, 1.0, 10.1],
-             // 15 : cannot do that because it may change after left-right fix
-             // (&[Some(0.5)], vec![
-             //                    // vec![0.5, 0.0, 0.0, 15.0],
-             //                    // vec![0.5, 0.5, 0.0, 15.5],
-             //                    // vec![0.0, 0.0, 0.1, 10.1],
-             //                ],
-             // ),
                                                     ],
         ),
         (&[None, Some(0.0), None, Some(10.1)],      vec![vec![0.0, 0.0, 0.0, 10.0], vec![0.0, 0.0, 1.0, 10.1]],),
@@ -106,11 +99,17 @@ fn get_unchecked() {
                                                 vec![0.5, 1.0, 1.0, 16.1]
                                             ]
         ,),
+        // 15
+        (&[Some(0.5)], vec![
+                           vec![0.5, 0.0, 0.0, 15.0], 
+                           vec![0.5, 0.5, 0.0, 15.5], 
+                           vec![0.5, 0.5, 0.5, 15.55], 
+                           vec![0.5, 1.0, 1.0, 16.1], 
+                           vec![0.5, 0.5, 1.0, (11.1 + 20.1) / 2.]
+                       ],
+        ),
     ];
     for (step, (value, target)) in test_data.into_iter().enumerate() {
-        // if step != 15 {
-        //     continue;
-        // }
         let result = table.get_unchecked(value);
         println!(
             "step={} value={:?} result={:?} target={:?}",
