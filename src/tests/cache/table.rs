@@ -1,8 +1,36 @@
 use super::*;
+use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
+use std::{sync::Once, time::Duration};
+use testing::stuff::max_test_duration::TestDuration;
 //
+//
+static INIT: Once = Once::new();
+///
+/// Once called initialisation.
+fn init_once() {
+    //
+    // Implement your initialisation code to be called only once for current test file.
+    INIT.call_once(|| {})
+}
+///
+/// Returns:
+///  - ...
+#[allow(clippy::unused_unit)]
+fn init_each() -> () {}
+///
+/// Test values, which [Table] returns for given 'value'.
 #[test]
-fn get_value_from_table() {
-    let precision = 4;
+fn get_unchecked() {
+    DebugSession::init(LogLevel::Info, Backtrace::Short);
+    init_once();
+    init_each();
+    let dbg_id = "get_unchecked";
+    log::debug!("\n{}", dbg_id);
+    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
+    test_duration.run().unwrap();
+    // init
+    //
+    let precision = 1;
     let matrix = [
         // 0    1    2     3
         [0.0, 0.0, 0.0, 10.0], // 0
@@ -22,54 +50,27 @@ fn get_value_from_table() {
             values.push(var_name);
         });
         let column = Column::new(values, precision);
-        // dbg!(&column);
         columns.push(column);
     }
     let table = Table::from(columns);
+    //
+    ////
     #[rustfmt::skip]
-         let test_data = [
-             // 0
-             ([Some(0.0), Some(1.0), Some(1.0)].as_slice(),   vec![vec![0.0, 1.0, 1.0, 11.1]],),
-             (&[Some(0.0), Some(1.0), Some(1.0), None],       vec![vec![0.0, 1.0, 1.0, 11.1]],),
-             (&[Some(0.0), Some(1.0), Some(1.0), Some(11.1)], vec![vec![0.0, 1.0, 1.0, 11.1]],),
-             (&[Some(0.0), Some(1.0), None, Some(11.1)],      vec![vec![0.0, 1.0, 0.0, 11.0], vec![0.0, 1.0, 1.0, 11.1]],),
-             (&[Some(0.0), None, Some(1.0), Some(11.1)],      vec![vec![0.0, 0.0, 1.0, 10.1], vec![0.0, 1.0, 1.0, 11.1]],),
-             // 5
-             (&[None, Some(1.0), Some(1.0), Some(11.1)], vec![vec![0.0, 1.0, 1.0, 11.1]],),
-             (&[Some(0.0), Some(1.0)],                   vec![vec![0.0, 1.0, 0.0, 11.0], vec![0.0, 1.0, 1.0, 11.1]],),
-             (&[Some(0.0), None, Some(1.0)],             vec![vec![0.0, 0.0, 1.0, 10.1], vec![0.0, 1.0, 1.0, 11.1]],),
-             (&[Some(0.0), None, None, Some(11.0)],      vec![
-                                                             vec![0.0, 0.0, 0.0, 10.0],
-                                                             vec![0.0, 1.0, 0.0, 11.0],
-                                                             vec![0.0, 0.0, 1.0, 10.1],
-                                                         ],
-             ),
-             (&[None, Some(0.0), None, Some(10.1)],      vec![vec![0.0, 0.0, 0.0, 10.0], vec![0.0, 0.0, 1.0, 10.1]],),
-             // 10
-             (&[None, None, Some(0.0), Some(21.0)], vec![vec![1.0, 1.0, 0.0, 21.0]],),
-             (&[Some(0.0)],                         vec![
+    let test_data = [
+        // 0
+        ([Some(0.0), Some(1.0), Some(1.0)].as_slice(),   vec![vec![0.0, 1.0, 1.0, 11.1]],),
+        (&[Some(0.0), Some(1.0), Some(1.0), None],       vec![vec![0.0, 1.0, 1.0, 11.1]],),
+        (&[Some(0.0), Some(1.0), Some(1.0), Some(11.1)], vec![vec![0.0, 1.0, 1.0, 11.1]],),
+        (&[Some(0.0), Some(1.0), None, Some(11.1)],      vec![vec![0.0, 1.0, 0.0, 11.0], vec![0.0, 1.0, 1.0, 11.1]],),
+        (&[Some(0.0), None, Some(1.0), Some(11.1)],      vec![vec![0.0, 0.0, 1.0, 10.1], vec![0.0, 1.0, 1.0, 11.1]],),
+        // 5
+        (&[None, Some(1.0), Some(1.0), Some(11.1)], vec![vec![0.0, 1.0, 1.0, 11.1]],),
+        (&[Some(0.0), Some(1.0)],                   vec![vec![0.0, 1.0, 0.0, 11.0], vec![0.0, 1.0, 1.0, 11.1]],),
+        (&[Some(0.0), None, Some(1.0)],             vec![vec![0.0, 0.0, 1.0, 10.1], vec![0.0, 1.0, 1.0, 11.1]],),
+        (&[Some(0.0), None, None, Some(11.0)],      vec![
                                                         vec![0.0, 0.0, 0.0, 10.0],
                                                         vec![0.0, 1.0, 0.0, 11.0],
                                                         vec![0.0, 0.0, 1.0, 10.1],
-                                                        vec![0.0, 1.0, 1.0, 11.1],
-                                                    ]
-             ),
-             (&[None, Some(0.0)],                   vec![
-                                                        vec![0.0, 0.0, 0.0, 10.0],
-                                                        vec![0.0, 0.0, 1.0, 10.1],
-                                                        vec![1.0, 0.0, 1.0, 20.1],
-                                                    ]
-             ),
-             (&[None, None, Some(0.0)],             vec![
-                                                        vec![0.0, 0.0, 0.0, 10.0],
-                                                        vec![1.0, 1.0, 0.0, 21.0],
-                                                    ]
-             ),
-             (&[None, None, None, Some(21.0)],      vec![
-                                                        vec![1.0, 1.0, 0.0, 21.0],
-                                                        vec![0.5, 1.0, 1.0, 16.1]
-                                                    ]
-             ,),
              // 15 : cannot do that because it may change after left-right fix
              // (&[Some(0.5)], vec![
              //                    // vec![0.5, 0.0, 0.0, 15.0],
@@ -77,16 +78,49 @@ fn get_value_from_table() {
              //                    // vec![0.0, 0.0, 0.1, 10.1],
              //                ],
              // ),
-         ];
+                                                    ],
+        ),
+        (&[None, Some(0.0), None, Some(10.1)],      vec![vec![0.0, 0.0, 0.0, 10.0], vec![0.0, 0.0, 1.0, 10.1]],),
+        // 10
+        (&[None, None, Some(0.0), Some(21.0)], vec![vec![1.0, 1.0, 0.0, 21.0]],),
+        (&[Some(0.0)],                         vec![
+                                                vec![0.0, 0.0, 0.0, 10.0],
+                                                vec![0.0, 1.0, 0.0, 11.0],
+                                                vec![0.0, 0.0, 1.0, 10.1],
+                                                vec![0.0, 1.0, 1.0, 11.1],
+                                            ]
+        ),
+        (&[None, Some(0.0)],                   vec![
+                                                vec![0.0, 0.0, 0.0, 10.0],
+                                                vec![0.0, 0.0, 1.0, 10.1],
+                                                vec![1.0, 0.0, 1.0, 20.1],
+                                            ]
+        ),
+        (&[None, None, Some(0.0)],             vec![
+                                                vec![0.0, 0.0, 0.0, 10.0],
+                                                vec![1.0, 1.0, 0.0, 21.0],
+                                            ]
+        ),
+        (&[None, None, None, Some(21.0)],      vec![
+                                                vec![1.0, 1.0, 0.0, 21.0],
+                                                vec![0.5, 1.0, 1.0, 16.1]
+                                            ]
+        ,),
+    ];
     for (step, (value, target)) in test_data.into_iter().enumerate() {
         // if step != 15 {
         //     continue;
         // }
         let result = table.get_unchecked(value);
+        println!(
+            "step={} value={:?} result={:?} target={:?}",
+            step, value, result, target
+        );
         assert_eq!(
             target, result,
-            "step={} target={:?}, result={:?}",
-            step, target, result
+            "step={} value={:?} result={:?} target={:?}",
+            step, value, result, target
         );
     }
+    test_duration.exit();
 }

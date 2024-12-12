@@ -1,7 +1,33 @@
 use super::*;
+use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
+use std::{sync::Once, time::Duration};
+use testing::stuff::max_test_duration::TestDuration;
 //
+//
+static INIT: Once = Once::new();
+///
+/// Once called initialisation.
+fn init_once() {
+    //
+    // Implement your initialisation code to be called only once for current test file.
+    INIT.call_once(|| {})
+}
+///
+/// Returns:
+///  - ...
+#[allow(clippy::unused_unit)]
+fn init_each() -> () {}
+///
+/// Bound intersection.
 #[test]
 fn bitand_test() {
+    DebugSession::init(LogLevel::Info, Backtrace::Short);
+    init_once();
+    init_each();
+    let dbg_id = "bitand_test";
+    log::debug!("\n{}", dbg_id);
+    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
+    test_duration.run().unwrap();
     let test_data = [
         // 0
         (Bound::None, Bound::None, Bound::None),
@@ -36,10 +62,12 @@ fn bitand_test() {
     ];
     for (step, (lhs, rhs, target)) in test_data.into_iter().enumerate() {
         let result = lhs & rhs;
+        println!("step={} result: {:?} target: {:?}\n", step, result, target);
         assert_eq!(
             result, target,
-            "step={} lhs={:?}, rhs={:?}, target={:?}, result={:?}",
+            "step={} lhs={:?} rhs={:?} target={:?} result={:?}",
             step, lhs, rhs, target, result
         );
     }
+    test_duration.exit();
 }
