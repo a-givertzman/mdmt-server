@@ -7,7 +7,7 @@ use crate::cache::{bound::Bound, column::Column, OwnedSet};
 type Float = f64;
 ///
 /// Set of [Column]s.
-pub(in crate::cache) struct Table<T> {
+pub(crate) struct Table<T> {
     columns: OwnedSet<Column<T>>,
 }
 //
@@ -25,7 +25,7 @@ where
 //
 //
 impl Table<Float> {
-    fn get_unchecked(&self, vals: &[Option<Float>]) -> Vec<Vec<Float>> {
+    pub(crate) fn get_unchecked(&self, vals: &[Option<Float>]) -> Vec<Vec<Float>> {
         let bounds = {
             let mut val_bounds = vec![];
             for (id, val) in vals
