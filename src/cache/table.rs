@@ -36,7 +36,6 @@ impl Table<Float> {
                 let bounds = self.columns[id].get_bounds(val);
                 val_bounds.push(bounds);
             }
-            // dbg!(&val_bounds);
             loop {
                 match (val_bounds.pop(), val_bounds.last_mut()) {
                     (None, _) => return vec![],
@@ -65,7 +64,6 @@ impl Table<Float> {
                 }
             }
         };
-        // dbg!(&bounds);
         bounds
             .into_iter()
             .flat_map(|bound| match bound {

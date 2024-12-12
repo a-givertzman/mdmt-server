@@ -135,14 +135,6 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
     /// Returns bounds of given value within internal dataset.
     pub(in crate::cache) fn get_bounds(&self, val: &T) -> Vec<Bound> {
         use Ordering::*;
-
-        // [to remove]
-        // if `val` is lower than the first value,
-        // take the value as the bound
-        // if let Less | Equal = self.data[ids[0]].approx_cmp(val, self.precision) {
-        //     bounds.push(Bound::Single(ids[0]));
-        // }
-
         // walk through all middle values
         let iter = self
             .inflections
@@ -170,21 +162,6 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
             });
         let mut bounds = Vec::from_iter(iter);
         bounds.dedup();
-
-        // [to remove]
-        // let last = ids.len() - 1;
-        // if let Equal = self.data[ids[last]].approx_cmp(val, self.precision) {
-        //     bounds.push(Bound::Single(ids[last]));
-        // }
-        // if `val` is greater than the last value,
-        // take the value as the bound
-        // {
-        //     let last = ids.len() - 1;
-        //     if let Less | Equal = self.data[ids[last]].approx_cmp(val, self.precision) {
-        //         bounds.push(Bound::Single(ids[last]));
-        //     }
-        // }
-
         bounds
     }
     ///
@@ -201,7 +178,6 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
             let cmp_result = data_val.approx_cmp(val, pr);
             cmp_result == dir
         });
-        // println!(" - vals={:?}, {}", vals, insert_id);
         if insert_id == 0 {
             bounds.push(Bound::Single(offset));
         } else if insert_id == vals.len() {
@@ -223,18 +199,6 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
                 _ => unreachable!(),
             }
         } else {
-            // [to remove]
-            // end of range
-            // let end = (insert_id..)
-            //     .take_while(|&id| {
-            //         id < vals.len() && {
-            //             let cmp = vals[insert_id].approx_cmp(&vals[id], pr);
-            //             matches!(cmp, Ordering::Equal,)
-            //         }
-            //     })
-            //     .last()
-            //     .unwrap_or(insert_id);
-
             let start = insert_id - 1 + offset;
             let end = insert_id + offset;
             bounds.push(Bound::Range(start, end));
