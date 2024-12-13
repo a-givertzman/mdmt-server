@@ -3,11 +3,12 @@
 mod tests;
 //
 use crate::cache::{bound::Bound, column::Column, OwnedSet};
-//
-type Float = f64;
+
+use super::Float;
 ///
 /// Set of [Column]s.
-pub(crate) struct Table<T> {
+#[derive(Default)]
+pub(in crate::cache) struct Table<T> {
     columns: OwnedSet<Column<T>>,
 }
 //
@@ -25,10 +26,10 @@ where
 //
 //
 impl Table<Float> {
-    pub(crate) fn get_unchecked(&self, vals: &[Option<Float>]) -> Vec<Vec<Float>> {
+    fn get_unchecked(&self, approx_vals: &[Option<Float>]) -> Vec<Vec<Float>> {
         let bounds = {
             let mut val_bounds = vec![];
-            for (id, val) in vals
+            for (id, val) in approx_vals
                 .iter()
                 .enumerate()
                 .filter_map(|(id, val)| val.as_ref().map(|val| (id, val)))
