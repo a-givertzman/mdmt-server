@@ -26,6 +26,22 @@ where
 //
 //
 impl Table<Float> {
+    ///
+    /// Returns approximated values from table.
+    ///
+    /// This is a safe method. If `approx_vals` has more elements than [Table] row provides,
+    /// this method returns `None`. In contrast, empty vector returns if no value found.
+    pub(in crate::cache) fn get(&self, approx_vals: &[Option<Float>]) -> Option<Vec<Vec<Float>>> {
+        (approx_vals.len() <= self.columns.len()).then(|| self.get_unchecked(approx_vals))
+    }
+    ///
+    /// Returns approximated values from table.
+    ///
+    /// Note that this is an unsafe version for internal use.
+    /// Caller must garantee that `approx_vals.len()` is less or equal to `self.columns.len()`.
+    ///
+    /// # Panic
+    /// This method panics if `approx_val.len()` is greter than `self.columns.len()`.
     fn get_unchecked(&self, approx_vals: &[Option<Float>]) -> Vec<Vec<Float>> {
         let bounds = {
             let mut val_bounds = vec![];
