@@ -1,8 +1,8 @@
+use crate::cache::Cache;
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
+use sal_sync::services::entity::dbg_id::DbgId;
 use std::{fs::File, io::BufReader, sync::Once, time::Duration};
 use testing::stuff::max_test_duration::TestDuration;
-
-use crate::cache::{Cache, CacheError};
 //
 //
 static INIT: Once = Once::new();
@@ -25,9 +25,10 @@ fn from_reader_with_precision_ok() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let dbg_id = "from_reader_with_precision_ok";
-    log::debug!("\n{}", dbg_id);
-    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
+    let self_id = "from_reader_with_precision_ok";
+    let dbgid = DbgId("test Cache".to_string());
+    log::debug!("\n{}", dbgid);
+    let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
     test_duration.run().unwrap();
     // init
     //
@@ -48,7 +49,8 @@ fn from_reader_with_precision_ok() {
         ([Some(0.6), Some(4.6), Some(3.6), Some(70.6)], Some(vec![vec![0.6, 4.6, 3.6, 70.6]])),
         ([Some(0.7), Some(0.7), Some(4.7), Some(80.7)], Some(vec![vec![0.7, 0.7, 4.7, 80.7]])),
     ];
-    let cache = Cache::from_reader_with_precision(reader, precision).expect("created");
+    let cache = Cache::from_reader_with_precision(dbgid.clone(), reader, precision)
+        .unwrap_or_else(|err| panic!("{}.{} | Failed creating Cache: {}", dbgid, self_id, err));
     for (step, (vals, target)) in test_data.into_iter().enumerate() {
         let result = cache.get(&vals);
         println!(
@@ -70,9 +72,10 @@ fn from_reader_with_precision_inconsistent() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let dbg_id = "from_reader_with_precision_inconsistent";
-    log::debug!("\n{}", dbg_id);
-    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
+    let self_id = "from_reader_with_precision_inconsistent";
+    let dbgid = DbgId("test Cache".to_string());
+    log::debug!("\n{}", dbgid);
+    let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
     test_duration.run().unwrap();
     let test_data = [
         ("src/tests/cache/tempdir/table-inc-row", 6),
@@ -82,17 +85,12 @@ fn from_reader_with_precision_inconsistent() {
         let file = File::open(path).expect("file exists");
         let reader = BufReader::new(file);
         let precision = 1;
-        let result = Cache::<f64>::from_reader_with_precision(reader, precision);
+        let result = Cache::<f64>::from_reader_with_precision(dbgid_, reader, precision);
         match result {
             Ok(_) => panic!("error expected"),
             Err(error) => {
-                assert!(
-                    matches!(error, CacheError::InconsistentDataset { line: result } if target == result),
-                    "path={} result={:?} target={:?}",
-                    path,
-                    error,
-                    CacheError::<f64>::InconsistentDataset { line: target }
-                );
+                let line_info = format!("line={}", target);
+                assert!(error.to_string().contains(&line_info));
             }
         }
     }

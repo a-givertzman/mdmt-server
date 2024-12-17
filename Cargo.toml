@@ -3,9 +3,11 @@ name = "mdmt-server"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies]
+sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git" }
+
 [dev-dependencies]
 debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "0.0.1" }
 env_logger = "^0.11"
 log = "^0.4"
-sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git" }
 testing = { git = "https://github.com/a-givertzman/rust-testing.git" }
