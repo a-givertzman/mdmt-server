@@ -24,9 +24,10 @@ fn get_unchecked() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let dbg_id = "get_unchecked";
-    log::debug!("\n{}", dbg_id);
-    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
+    let dbgid = DbgId("test Table".to_string());
+    let callee = "get_unchecked";
+    log::debug!("\n{}", dbgid);
+    let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
     test_duration.run().unwrap();
     // init
     //
@@ -52,7 +53,7 @@ fn get_unchecked() {
         let column = Column::new(values, precision);
         columns.push(column);
     }
-    let table = Table::from(columns);
+    let table = Table::new(&dbgid, columns);
     //
     ////
     #[rustfmt::skip]
@@ -112,13 +113,13 @@ fn get_unchecked() {
     for (step, (value, target)) in test_data.into_iter().enumerate() {
         let result = table.get_unchecked(value);
         println!(
-            "step={} value={:?} result={:?} target={:?}",
-            step, value, result, target
+            "{}.{} | step={} value={:?} result={:?} target={:?}",
+            dbgid, callee, step, value, result, target
         );
         assert_eq!(
             target, result,
-            "step={} value={:?} result={:?} target={:?}",
-            step, value, result, target
+            "{}.{} | step={} value={:?} result={:?} target={:?}",
+            dbgid, callee, step, value, result, target
         );
     }
     test_duration.exit();

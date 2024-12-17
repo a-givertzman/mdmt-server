@@ -1,26 +1,25 @@
 #[cfg(test)]
 #[path = "../tests/cache/table.rs"]
 mod tests;
+use sal_sync::services::entity::dbg_id::DbgId;
+
 //
 use crate::cache::{bound::Bound, column::Column, OwnedSet};
 
 use super::Float;
 ///
 /// Set of [Column]s.
-#[derive(Default)]
 pub(in crate::cache) struct Table<T> {
+    dbgid: DbgId,
     columns: OwnedSet<Column<T>>,
 }
 //
 //
-impl<S, T> From<S> for Table<T>
-where
-    S: Into<OwnedSet<Column<T>>>,
-{
-    fn from(cols: S) -> Self {
-        Self {
-            columns: cols.into(),
-        }
+impl<T> Table<T> {
+    pub(crate) fn new(dbgid: &DbgId, cols: impl Into<OwnedSet<Column<T>>>) -> Self {
+        let dbgid = DbgId::with_parent(dbgid, "Table");
+        let columns = cols.into();
+        Self { dbgid, columns }
     }
 }
 //
@@ -43,6 +42,7 @@ impl Table<Float> {
     /// # Panic
     /// This method panics if `approx_val.len()` is greter than `self.columns.len()`.
     fn get_unchecked(&self, approx_vals: &[Option<Float>]) -> Vec<Vec<Float>> {
+        let callee = "get_unchecked";
         let bounds = {
             let mut val_bounds = vec![];
             for (id, val) in approx_vals
@@ -53,6 +53,12 @@ impl Table<Float> {
                 let bounds = self.columns[id].get_bounds(val);
                 val_bounds.push(bounds);
             }
+            log::debug!(
+                "{}.{} | Filtered bounds: {:?}",
+                self.dbgid,
+                callee,
+                val_bounds
+            );
             loop {
                 match (val_bounds.pop(), val_bounds.last_mut()) {
                     (None, _) => return vec![],
@@ -81,6 +87,7 @@ impl Table<Float> {
                 }
             }
         };
+        log::debug!("{}.{} | Merged bounds: {:?}", self.dbgid, callee, bounds);
         bounds
             .into_iter()
             .flat_map(|bound| match bound {
@@ -96,9 +103,14 @@ impl Table<Float> {
                 Bound::Range(start, end) => {
                     let mut vals = Vec::with_capacity(self.columns.len());
                     let len = end - start + 1;
-                    for col in self.columns.iter() {
+                    for (col_id, col) in self.columns.iter().enumerate() {
                         let sum = (start..=end).map(|row_id| col[row_id]).sum::<Float>();
-                        vals.push(sum / len as Float);
+                        let val = sum / len as Float;
+                        vals.push(val);
+                        log::trace!(
+                            "{}.{} | Interpolation: col_id={} from row_id={} to row_id={} with result={}",
+                            self.dbgid, callee, col_id, start, end, val
+                        );
                     }
                     Some(vals)
                 }

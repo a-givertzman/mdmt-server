@@ -61,13 +61,13 @@ impl<T: ApproxOrd> Cache<T> {
                 vals_mut[i].push(val);
             }
         }
-        let table = vals
+        let cols = vals
             .map(|vals| {
                 let iter_over_cols = vals.into_iter().map(|vals| Column::new(vals, precision));
-                let columns = OwnedSet::from_iter(iter_over_cols);
-                Table::from(columns)
+                OwnedSet::from_iter(iter_over_cols)
             })
             .unwrap_or_default();
+        let table = Table::new(&dbgid, cols);
         Ok(Self { dbgid, table })
     }
 }
