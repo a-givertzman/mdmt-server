@@ -29,27 +29,33 @@ impl<T: ApproxOrd> Cache<T> {
         T: FromStr<Err = ParseFloatError> + Clone + Default,
     {
         let dbgid = DbgId::with_parent(&dbgid, "Cache");
+        let callee = "from_reader_with_precision";
         let mut vals = None;
         for (try_line, line_id) in reader.lines().zip(1..) {
             let line = try_line.map_err(|err| {
-                format!("{}.new | Failed reading line={}: {}", dbgid, line_id, err)
+                format!(
+                    "{}.{} | Failed reading line={}: {}",
+                    dbgid, callee, line_id, err
+                )
             })?;
             let ss = line.split_ascii_whitespace();
             let ss_len = ss.clone().count();
             let vals_mut = match vals.as_mut() {
                 None => vals.insert(vec![vec![]; ss_len]),
                 Some(vals) if vals.len() != ss_len => {
-                    return Err(
-                        format!("{}.new | Inconsistent dataset at line={}", dbgid, line_id).into(),
+                    return Err(format!(
+                        "{}.{} | Inconsistent dataset at line={}",
+                        dbgid, callee, line_id
                     )
+                    .into())
                 }
                 Some(vals) => vals,
             };
             for (i, s) in ss.enumerate() {
                 let val = s.parse().map_err(|err| {
                     format!(
-                        "{}.new | Failed parsing value at line={}: {}",
-                        dbgid, line_id, err
+                        "{}.{} | Failed parsing value at line={}: {}",
+                        dbgid, callee, line_id, err
                     )
                 })?;
                 vals_mut[i].push(val);
