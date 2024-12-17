@@ -33,7 +33,12 @@ fn from_reader_with_precision_ok() {
     // init
     //
     let path = "src/tests/cache/tempdir/table-ok";
-    let file = File::open(path).expect("file exists");
+    let file = File::open(path).unwrap_or_else(|err| {
+        panic!(
+            "{}.{} | Failed opening file='{}': {}",
+            dbgid, self_id, path, err
+        )
+    });
     let reader = BufReader::new(file);
     let precision = 1;
     //
@@ -82,16 +87,22 @@ fn from_reader_with_precision_inconsistent() {
         ("src/tests/cache/tempdir/table-inc-col", 8),
     ];
     for (path, target) in test_data {
-        let file = File::open(path).expect("file exists");
+        let dbgid_ = dbgid.clone();
+        let file = File::open(path).unwrap_or_else(|err| {
+            panic!(
+                "{}.{} | Failed opening file='{}': {}",
+                dbgid_, self_id, path, err
+            )
+        });
         let reader = BufReader::new(file);
         let precision = 1;
         let result = Cache::<f64>::from_reader_with_precision(dbgid_, reader, precision);
         match result {
-            Ok(_) => panic!("error expected"),
             Err(error) => {
                 let line_info = format!("line={}", target);
                 assert!(error.to_string().contains(&line_info));
             }
+            Ok(_) => panic!("{}.{} | Must fail to create Cache", dbgid, self_id),
         }
     }
     test_duration.exit();
