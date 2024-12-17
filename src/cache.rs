@@ -21,14 +21,14 @@ impl<T: ApproxOrd> Cache<T> {
     ///
     /// Creates an instance with given `precision` using `reader` as the source of values.
     pub(crate) fn from_reader_with_precision(
-        dbgid: DbgId,
+        dbgid: &DbgId,
         reader: impl BufRead,
         precision: u8,
     ) -> Result<Self, StrErr>
     where
         T: FromStr<Err = ParseFloatError> + Clone + Default,
     {
-        let dbgid = DbgId::with_parent(&dbgid, "Cache");
+        let dbgid = DbgId::with_parent(dbgid, "Cache");
         let callee = "from_reader_with_precision";
         let mut vals = None;
         for (try_line, line_id) in reader.lines().zip(1..) {

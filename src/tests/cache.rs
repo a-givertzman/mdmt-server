@@ -54,7 +54,7 @@ fn from_reader_with_precision_ok() {
         ([Some(0.6), Some(4.6), Some(3.6), Some(70.6)], Some(vec![vec![0.6, 4.6, 3.6, 70.6]])),
         ([Some(0.7), Some(0.7), Some(4.7), Some(80.7)], Some(vec![vec![0.7, 0.7, 4.7, 80.7]])),
     ];
-    let cache = Cache::from_reader_with_precision(dbgid.clone(), reader, precision)
+    let cache = Cache::from_reader_with_precision(&dbgid, reader, precision)
         .unwrap_or_else(|err| panic!("{}.{} | Failed creating Cache: {}", dbgid, calee, err));
     for (step, (vals, target)) in test_data.into_iter().enumerate() {
         let result = cache.get(&vals);
@@ -87,16 +87,15 @@ fn from_reader_with_precision_inconsistent() {
         ("src/tests/cache/tempdir/table-inc-col", 8),
     ];
     for (path, target) in test_data {
-        let dbgid_ = dbgid.clone();
         let file = File::open(path).unwrap_or_else(|err| {
             panic!(
                 "{}.{} | Failed opening file='{}': {}",
-                dbgid_, callee, path, err
+                dbgid, callee, path, err
             )
         });
         let reader = BufReader::new(file);
         let precision = 1;
-        let result = Cache::<f64>::from_reader_with_precision(dbgid_, reader, precision);
+        let result = Cache::<f64>::from_reader_with_precision(&dbgid, reader, precision);
         match result {
             Err(error) => {
                 let line_info = format!("line={}", target);
