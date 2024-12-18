@@ -2,8 +2,9 @@ mod bound;
 mod column;
 mod table;
 //
+use crate::error::StrErr;
 use column::{ApproxOrd, Column};
-use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
+use sal_sync::services::entity::dbg_id::DbgId;
 use std::{io::BufRead, num::ParseFloatError, str::FromStr};
 use table::Table;
 //
@@ -43,11 +44,10 @@ impl<T: ApproxOrd> Cache<T> {
             let vals_mut = match vals.as_mut() {
                 None => vals.insert(vec![vec![]; ss_len]),
                 Some(vals) if vals.len() != ss_len => {
-                    return Err(format!(
+                    return Err(StrErr::from(format!(
                         "{}.{} | Inconsistent dataset at line={}",
                         dbgid, callee, line_id
-                    )
-                    .into())
+                    )))
                 }
                 Some(vals) => vals,
             };
