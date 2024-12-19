@@ -14,24 +14,15 @@ pub(in crate::cache) trait ApproxOrd<Rhs = Self> {
 }
 //
 //
-macro_rules! impl_approx_ord {
-    ($($ty:ty),+) => {
-        $(
-            impl ApproxOrd<$ty> for $ty {
-                fn approx_cmp(&self, rhs: &$ty, precision: u8) -> Ordering {
-                    let base = 10 as $ty;
-                    let pr = precision as i32;
-                    let this = (self * base.powi(pr)).trunc();
-                    let other = (rhs * base.powi(pr)).trunc();
-                    this.total_cmp(&other)
-                }
-            }
-        )+
-    };
+impl ApproxOrd<f64> for f64 {
+    fn approx_cmp(&self, rhs: &f64, precision: u8) -> Ordering {
+        let base: f64 = 10.0;
+        let pr = precision as i32;
+        let this = (self * base.powi(pr)).trunc();
+        let other = (rhs * base.powi(pr)).trunc();
+        this.total_cmp(&other)
+    }
 }
-//
-//
-impl_approx_ord! { f32, f64 }
 ///
 /// Analyzed dataset, column of [crate::cache::table::Table].
 #[derive(Clone, Debug)]
