@@ -40,7 +40,6 @@ fn from_reader_with_precision_ok() {
         )
     });
     let reader = BufReader::new(file);
-    let precision = 1;
     //
     ////
     #[rustfmt::skip]
@@ -54,7 +53,7 @@ fn from_reader_with_precision_ok() {
         ([Some(0.6), Some(4.6), Some(3.6), Some(70.6)], Some(vec![vec![0.6, 4.6, 3.6, 70.6]])),
         ([Some(0.7), Some(0.7), Some(4.7), Some(80.7)], Some(vec![vec![0.7, 0.7, 4.7, 80.7]])),
     ];
-    let cache = Cache::from_reader_with_precision(&dbgid, reader, precision)
+    let cache = Cache::from_reader_with_precision(&dbgid, reader)
         .unwrap_or_else(|err| panic!("{}.{} | Failed creating Cache: {}", dbgid, calee, err));
     for (step, (vals, target)) in test_data.into_iter().enumerate() {
         let result = cache.get(&vals);
@@ -94,8 +93,7 @@ fn from_reader_with_precision_inconsistent() {
             )
         });
         let reader = BufReader::new(file);
-        let precision = 1;
-        let result = Cache::<f64>::from_reader_with_precision(&dbgid, reader, precision);
+        let result = Cache::<f64>::from_reader_with_precision(&dbgid, reader);
         match result {
             Err(error) => {
                 let line_info = format!("line={}", target);

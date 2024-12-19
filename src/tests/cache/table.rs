@@ -31,7 +31,6 @@ fn get_unchecked() {
     test_duration.run().unwrap();
     // init
     //
-    let precision = 1;
     let matrix = [
         // 0    1    2     3
         [0.0, 0.0, 0.0, 10.0], // 0
@@ -50,7 +49,7 @@ fn get_unchecked() {
             let var_name = matrix[row_id][col_id];
             values.push(var_name);
         });
-        let column = Column::new(values, precision);
+        let column = Column::new(values);
         columns.push(column);
     }
     let table = Table::new(&dbgid, columns);

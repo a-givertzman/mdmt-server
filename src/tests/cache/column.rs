@@ -18,37 +18,6 @@ fn init_once() {
 #[allow(clippy::unused_unit)]
 fn init_each() -> () {}
 ///
-/// Compare two values with given `precision`.
-#[test]
-fn approx_cmp_f64() {
-    DebugSession::init(LogLevel::Info, Backtrace::Short);
-    init_once();
-    init_each();
-    let dbg_id = "approx_cmp_f64";
-    log::debug!("\n{}", dbg_id);
-    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
-    test_duration.run().unwrap();
-    let test_data = [
-        (0.1 + 0.2, 0.3, 16, Ordering::Equal),
-        (0.1 + 0.2, 0.3, 17, Ordering::Greater),
-        (1e-10 + 1e-10 * 0.1, 1e-10, 10, Ordering::Equal),
-        (1e-10 + 1e-10 * 0.1, 1e-10, 11, Ordering::Greater),
-    ];
-    for (lhs, rhs, precision, target) in test_data {
-        let result = lhs.approx_cmp(&rhs, precision);
-        println!(
-            "lhs={} rhs={} result={:?} target={:?}",
-            lhs, rhs, result, target
-        );
-        assert_eq!(
-            result, target,
-            "lhs={} rhs={} result={:?} target={:?}",
-            lhs, rhs, result, target
-        );
-    }
-    test_duration.exit();
-}
-///
 /// Analyze values and extract inflextion points.
 #[test]
 fn get_inflextion_test() {
@@ -62,34 +31,34 @@ fn get_inflextion_test() {
     #[rustfmt::skip]
     let test_data = [
         // 0
-        (vec![], 0, vec![].into()),
-        (vec![1.], 1, vec![0].into()),
-        (vec![2., 2.], 1, vec![0, 1].into()),
-        (vec![0., 1., 2.], 1, vec![0, 2].into()),
-        (vec![0., 1., 2., 2.], 1, vec![0, 3].into()),
-        (vec![0., 1., 1., 2.], 1, vec![0, 3].into()),
-        (vec![2., 1., 0.], 1, vec![0, 2].into()),
-        (vec![2., 2., 1., 0.], 1, vec![0, 3].into()),
-        (vec![2., 1., 0., 0.], 1, vec![0, 3].into()),
-        (vec![4., 4., 1., 4., 4.], 1, vec![0, 2, 4].into()),
+        (vec![], vec![].into()),
+        (vec![1.], vec![0].into()),
+        (vec![2., 2.], vec![0, 1].into()),
+        (vec![0., 1., 2.], vec![0, 2].into()),
+        (vec![0., 1., 2., 2.], vec![0, 3].into()),
+        (vec![0., 1., 1., 2.], vec![0, 3].into()),
+        (vec![2., 1., 0.], vec![0, 2].into()),
+        (vec![2., 2., 1., 0.], vec![0, 3].into()),
+        (vec![2., 1., 0., 0.], vec![0, 3].into()),
+        (vec![4., 4., 1., 4., 4.], vec![0, 2, 4].into()),
         // 10
-        (vec![0., 0., 0., 0., 1.], 1, vec![0, 4].into()),
-        (vec![1., 0., 0., 0., 0.], 1, vec![0, 4].into()),
-        (vec![4., 0., 0., 0., 4.], 1, vec![0, 3, 4].into()),
-        (vec![4., 0., 0., 0., 4., 0.], 1, vec![0, 3, 4, 5].into()),
-        (vec![4., 4., -2., 4., 4.], 1, vec![0, 2, 4].into()),
-        (vec![0., 0., 5., 0., 0., 5.], 1, vec![0, 2, 4, 5].into()),
-        (vec![0., 0., 7., 0., 0., 7., 7., 7.], 1, vec![0, 2, 4, 7].into()),
-        (vec![6., 5., 4., 3., 4., 5., 6.], 1, vec![0, 3, 6].into()),
-        (vec![0., 1., 2., 3., 2., 1., 0., 1., 2., 3., 2., 1., 0.], 1, vec![0, 3, 6, 9, 12].into()),
-        (vec![0., 0., 2., 2., 3., 3., 2., 2., 1., 1., 0., 0., 1., 0., 0.], 1, vec![0, 5, 11, 12, 14].into()),
+        (vec![0., 0., 0., 0., 1.], vec![0, 4].into()),
+        (vec![1., 0., 0., 0., 0.], vec![0, 4].into()),
+        (vec![4., 0., 0., 0., 4.], vec![0, 3, 4].into()),
+        (vec![4., 0., 0., 0., 4., 0.], vec![0, 3, 4, 5].into()),
+        (vec![4., 4., -2., 4., 4.], vec![0, 2, 4].into()),
+        (vec![0., 0., 5., 0., 0., 5.], vec![0, 2, 4, 5].into()),
+        (vec![0., 0., 7., 0., 0., 7., 7., 7.], vec![0, 2, 4, 7].into()),
+        (vec![6., 5., 4., 3., 4., 5., 6.], vec![0, 3, 6].into()),
+        (vec![0., 1., 2., 3., 2., 1., 0., 1., 2., 3., 2., 1., 0.], vec![0, 3, 6, 9, 12].into()),
+        (vec![0., 0., 2., 2., 3., 3., 2., 2., 1., 1., 0., 0., 1., 0., 0.], vec![0, 5, 11, 12, 14].into()),
         // 20
         // NOTE: zig-zag shape like '/\/\/' gives values one-by-one
         // need to handle that somehow?
-        (vec![-1., 1., -0.5, 0.5, 0.], 1, vec![0, 1, 2, 3, 4].into()),
+        (vec![-1., 1., -0.5, 0.5, 0.], vec![0, 1, 2, 3, 4].into()),
     ];
-    for (step, (values, precision, target)) in test_data.into_iter().enumerate() {
-        let result = Column::get_inflections(&values, precision);
+    for (step, (values, target)) in test_data.into_iter().enumerate() {
+        let result = Column::get_inflections(&values);
         println!(
             "step={} values={:?} result={:?} target={:?}",
             step, values, result, target
@@ -116,8 +85,7 @@ fn get_bounds_monotonic() {
     // init
     //                0   1   2   3   4   5   6   7    8    9   10   11
     let values = vec![0., 1., 2., 3., 2., 1., 0., 0., -1., -1., 10., 9.];
-    let precsion = 1;
-    let column = Column::new(values, precsion);
+    let column = Column::new(values);
     //
     ////
     #[rustfmt::skip]
@@ -169,8 +137,7 @@ fn get_bounds_non_descresing() {
     // init
     //                0   1   2   3   4   5   6   7
     let values = vec![0., 1., 1., 1., 2., 2., 3., 4.];
-    let precsion = 1;
-    let column = Column::new(values, precsion);
+    let column = Column::new(values);
     //
     ////
     #[rustfmt::skip]

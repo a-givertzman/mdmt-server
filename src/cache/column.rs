@@ -6,54 +6,30 @@ use super::OwnedSet;
 use crate::cache::bound::Bound;
 use std::{cmp::Ordering, ops::Deref};
 ///
-/// Ordering method (similar to [Ord]) with given approximation.
-pub(in crate::cache) trait ApproxOrd<Rhs = Self> {
-    ///
-    /// Compare with precision.
-    fn approx_cmp(&self, rhs: &Rhs, pr: u8) -> Ordering;
-}
-//
-//
-impl ApproxOrd<f64> for f64 {
-    fn approx_cmp(&self, rhs: &f64, precision: u8) -> Ordering {
-        let base: f64 = 10.0;
-        let pr = precision as i32;
-        let this = (self * base.powi(pr)).trunc();
-        let other = (rhs * base.powi(pr)).trunc();
-        this.total_cmp(&other)
-    }
-}
 ///
 /// Analyzed dataset, column of [crate::cache::table::Table].
 #[derive(Clone, Debug)]
 pub(in crate::cache) struct Column<T> {
     inflections: OwnedSet<usize>,
     data: OwnedSet<T>,
-    precision: u8,
 }
 //
 //
-impl<T> Column<T> {
+impl<T: PartialOrd> Column<T> {
     ///
     /// Returns an instance analyzed with given precision.
-    pub(in crate::cache) fn new<S>(values: S, precision: u8) -> Self
+    pub(in crate::cache) fn new<S>(values: S) -> Self
     where
         S: Into<OwnedSet<T>> + Deref<Target = [T]>,
-        T: ApproxOrd,
     {
         Self {
-            inflections: Self::get_inflections(&values, precision),
+            inflections: Self::get_inflections(&values),
             data: values.into(),
-            precision,
         }
     }
-}
-//
-//
-impl<T: ApproxOrd> Column<T> {
     ///
     /// Returns inflection point IDs based on given values and precision.
-    fn get_inflections(values: &[T], precision: u8) -> OwnedSet<usize> {
+    fn get_inflections(values: &[T]) -> OwnedSet<usize> {
         use Ordering::*;
         //
         if values.is_empty() {
@@ -69,31 +45,31 @@ impl<T: ApproxOrd> Column<T> {
             let l_val = &win[0];
             let m_val = &win[1];
             let r_val = &win[2];
-            match (
-                l_val.approx_cmp(m_val, precision),
-                m_val.approx_cmp(r_val, precision),
-            ) {
-                // flex (p)oint: m_id __. . or   .
-                //                     . \    . .__ m_id
-                //                        p     ^p
-                (cur @ Less, Equal)
-                | (Equal, cur @ Less)
-                | (cur @ Greater, Equal)
-                | (Equal, cur @ Greater) => match prev_dir.as_mut() {
-                    Some(prev) => {
-                        if cur != *prev {
-                            flex.push(m_id);
-                            prev_dir = Some(cur);
+            match (l_val.partial_cmp(m_val), m_val.partial_cmp(r_val)) {
+                (Some(l_vs_m), Some(m_vs_r)) => match (l_vs_m, m_vs_r) {
+                    // flex (p)oint: m_id __. . or   .
+                    //                     . \    . .__ m_id
+                    //                        p     ^p
+                    (cur @ Less, Equal)
+                    | (Equal, cur @ Less)
+                    | (cur @ Greater, Equal)
+                    | (Equal, cur @ Greater) => match prev_dir.as_mut() {
+                        Some(prev) => {
+                            if cur != *prev {
+                                flex.push(m_id);
+                                prev_dir = Some(cur);
+                            }
                         }
+                        None => prev_dir = Some(cur),
+                    },
+                    // local extremum
+                    (Greater, cur @ Less) | (Less, cur @ Greater) => {
+                        flex.push(m_id);
+                        prev_dir = Some(cur);
                     }
-                    None => prev_dir = Some(cur),
+                    _ => {}
                 },
-                // local extremum
-                (Greater, cur @ Less) | (Less, cur @ Greater) => {
-                    flex.push(m_id);
-                    prev_dir = Some(cur);
-                }
-                _ => {}
+                _ => todo!("error handling of non-comparable value"),
             }
         }
         // Include the first, ..
@@ -108,20 +84,6 @@ impl<T: ApproxOrd> Column<T> {
         ids.dedup();
         ids.into()
     }
-}
-//
-//
-impl<T> Deref for Column<T> {
-    type Target = [T];
-    //
-    //
-    fn deref(&self) -> &Self::Target {
-        self.data.deref()
-    }
-}
-//
-//
-impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
     ///
     /// Returns bounds of given value within internal dataset.
     pub(in crate::cache) fn get_bounds(&self, val: &T) -> Vec<Bound> {
@@ -133,23 +95,16 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
             .filter(|win| {
                 let first = &self.data[win[0]];
                 let last = &self.data[win[1]];
-                let precision = self.precision;
-                let cmp_results = (
-                    first.approx_cmp(val, precision),
-                    val.approx_cmp(last, precision),
-                );
-                matches!(
-                    cmp_results,
-                    (Less | Equal, Less | Equal) | (Greater | Equal, Greater | Equal)
-                )
+                match (first.partial_cmp(val), val.partial_cmp(last)) {
+                    (Some(first_vs_val), Some(val_vs_last)) => matches!(
+                        (first_vs_val, val_vs_last),
+                        (Less | Equal, Less | Equal) | (Greater | Equal, Greater | Equal)
+                    ),
+                    _ => todo!("error handling of non-comparable value"),
+                }
             })
             .flat_map(|win| {
-                Self::get_bounds_of_monotonic(
-                    &self.data[win[0]..=win[1]],
-                    val,
-                    self.precision,
-                    win[0],
-                )
+                Self::get_bounds_of_monotonic(&self.data[win[0]..=win[1]], val, win[0])
             });
         let mut bounds = Vec::from_iter(iter);
         bounds.dedup();
@@ -162,26 +117,29 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
     ///
     /// # Note
     /// If `vals` is not monotonic, the output is _meaningless_.
-    fn get_bounds_of_monotonic(vals: &[T], val: &T, pr: u8, offset: usize) -> Vec<Bound> {
+    fn get_bounds_of_monotonic(vals: &[T], val: &T, offset: usize) -> Vec<Bound> {
         let mut bounds = vec![];
-        let dir = vals[0].approx_cmp(&vals[vals.len() - 1], pr);
+        let dir = vals[0]
+            .partial_cmp(&vals[vals.len() - 1])
+            .expect("TODO: error handling of non-comparable value");
         let insert_id = vals.partition_point(|data_val| {
-            let cmp_result = data_val.approx_cmp(val, pr);
+            let cmp_result = data_val
+                .partial_cmp(val)
+                .expect("TODO: error handling of non-comparable value");
             cmp_result == dir
         });
         if insert_id == 0 {
             bounds.push(Bound::Single(offset));
         } else if insert_id == vals.len() {
             bounds.push(Bound::Single(vals.len() - 1 + offset));
-        } else if let Ordering::Equal = vals[insert_id].approx_cmp(val, pr) {
+        } else if *val == vals[insert_id] {
             bounds.push(Bound::Single(insert_id + offset));
             match dir {
                 Ordering::Less | Ordering::Greater => {
                     (1..)
                         .take_while(|i| {
-                            vals.get(insert_id + i).is_some_and(|insert_val| {
-                                Ordering::Equal == insert_val.approx_cmp(val, pr)
-                            })
+                            vals.get(insert_id + i)
+                                .is_some_and(|insert_val| insert_val == val)
                         })
                         .for_each(|i| {
                             bounds.push(Bound::Single(insert_id + i + offset));
@@ -195,5 +153,15 @@ impl<T: ApproxOrd + std::fmt::Debug> Column<T> {
             bounds.push(Bound::Range(start, end));
         }
         bounds
+    }
+}
+//
+//
+impl<T> Deref for Column<T> {
+    type Target = [T];
+    //
+    //
+    fn deref(&self) -> &Self::Target {
+        self.data.deref()
     }
 }

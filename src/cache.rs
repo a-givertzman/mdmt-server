@@ -2,7 +2,7 @@ mod bound;
 mod column;
 mod table;
 //
-use column::{ApproxOrd, Column};
+use column::Column;
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use std::{io::BufRead, num::ParseFloatError, str::FromStr};
 use table::Table;
@@ -17,13 +17,12 @@ pub(crate) struct Cache<T> {
 }
 //
 //
-impl<T: ApproxOrd> Cache<T> {
+impl<T: PartialOrd> Cache<T> {
     ///
     /// Creates an instance with given `precision` using `reader` as the source of values.
     pub(crate) fn from_reader_with_precision(
         dbgid: &DbgId,
         reader: impl BufRead,
-        precision: u8,
     ) -> Result<Self, StrErr>
     where
         T: FromStr<Err = ParseFloatError> + Clone + Default,
@@ -63,7 +62,7 @@ impl<T: ApproxOrd> Cache<T> {
         }
         let cols = vals
             .map(|vals| {
-                let iter_over_cols = vals.into_iter().map(|vals| Column::new(vals, precision));
+                let iter_over_cols = vals.into_iter().map(|vals| Column::new(vals));
                 OwnedSet::from_iter(iter_over_cols)
             })
             .unwrap_or_default();
