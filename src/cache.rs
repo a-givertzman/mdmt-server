@@ -76,6 +76,9 @@ impl<T: ApproxOrd> Cache<T> {
 impl Cache<Float> {
     ///
     /// Returns approximated values based on given ones.
+    ///
+    /// This is a safe method. If `approx_vals` has more elements than [Cache] supports,
+    /// this method returns `None`. In contrast, empty vector returns if no value found.
     pub(crate) fn get(&self, approx_vals: &[Option<Float>]) -> Option<Vec<Vec<Float>>> {
         self.table.get(approx_vals)
     }
