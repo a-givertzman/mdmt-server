@@ -28,8 +28,11 @@ impl Table<Float> {
     ///
     /// Returns approximated values from table.
     ///
-    /// This is a safe method. If `approx_vals` has more elements than [Table] row provides,
-    /// this method returns `None`. In contrast, empty vector returns if no value found.
+    /// This is a safe method in terms if bounds: If `approx_vals` has more elements than [Table] row provides,
+    /// this method returns [None]. In contrast, the empty vector returns if no value found.
+    ///
+    /// # Panics
+    /// Panic occurs if `approx_vals` contains a non-comparable value (e. g. _NaN_).
     pub(in crate::cache) fn get(&self, approx_vals: &[Option<Float>]) -> Option<Vec<Vec<Float>>> {
         (approx_vals.len() <= self.columns.len()).then(|| self.get_unchecked(approx_vals))
     }
@@ -39,8 +42,10 @@ impl Table<Float> {
     /// Note that this is an unsafe version for internal use.
     /// Caller must garantee that `approx_vals.len()` is less or equal to `self.columns.len()`.
     ///
-    /// # Panic
-    /// This method panics if `approx_val.len()` is greter than `self.columns.len()`.
+    /// # Panics
+    /// This method panics if at least one of the statements is true:
+    /// - `approx_val.len()` is greter than `self.columns.len()`,
+    /// - `approx_vals` contains a non-comparable value (e. g. _NaN_).
     fn get_unchecked(&self, approx_vals: &[Option<Float>]) -> Vec<Vec<Float>> {
         let callee = "get_unchecked";
         let bounds = {

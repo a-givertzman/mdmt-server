@@ -19,7 +19,10 @@ pub(crate) struct Cache<T> {
 //
 impl<T: PartialOrd> Cache<T> {
     ///
-    /// Creates an instance with given `precision` using `reader` as the source of values.
+    /// Creates an instance using `reader` as the source of values.
+    ///
+    /// # Panics
+    /// Panic occurs if reader produces a non-comparable value (e. g. _NaN_).
     pub(crate) fn from_reader_with_precision(
         dbgid: &DbgId,
         reader: impl BufRead,
@@ -76,8 +79,11 @@ impl Cache<Float> {
     ///
     /// Returns approximated values based on given ones.
     ///
-    /// This is a safe method. If `approx_vals` has more elements than [Cache] supports,
-    /// this method returns `None`. In contrast, empty vector returns if no value found.
+    /// This is a safe method in terms of bounds: If `approx_vals` has more elements than [Cache] supports,
+    /// this method returns `None`. In contrast, the empty vector returns if no value found.
+    ///
+    /// # Panics
+    /// Panic occurs if `approx_vals` contains a non-comparable value (e. g. _NaN_).
     pub(crate) fn get(&self, approx_vals: &[Option<Float>]) -> Option<Vec<Vec<Float>>> {
         self.table.get(approx_vals)
     }

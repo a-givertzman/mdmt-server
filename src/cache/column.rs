@@ -6,8 +6,11 @@ use super::OwnedSet;
 use crate::cache::bound::Bound;
 use std::{cmp::Ordering, ops::Deref};
 ///
+/// Analyzed dataset, column of [Table].
 ///
-/// Analyzed dataset, column of [crate::cache::table::Table].
+/// A dataset is _analyzed_ if all its inflection points are defined.
+///
+/// [Table]: crate::cache::table::Table
 #[derive(Clone, Debug)]
 pub(in crate::cache) struct Column<T> {
     inflections: OwnedSet<usize>,
@@ -17,7 +20,10 @@ pub(in crate::cache) struct Column<T> {
 //
 impl<T: PartialOrd> Column<T> {
     ///
-    /// Returns an instance analyzed with given precision.
+    /// Returns an analyzed instance (see [Column] for details).
+    ///
+    /// # Panics
+    /// Panic occurs if `values` contains a non-comparable value (e. g. _NaN_).
     pub(in crate::cache) fn new<S>(values: S) -> Self
     where
         S: Into<OwnedSet<T>> + Deref<Target = [T]>,
@@ -28,7 +34,10 @@ impl<T: PartialOrd> Column<T> {
         }
     }
     ///
-    /// Returns inflection point IDs based on given values and precision.
+    /// Returns inflection point IDs based on given values.
+    ///
+    /// # Panics
+    /// Panic occurs if `values` contains a non-comparable value (e. g. _NaN_).
     fn get_inflections(values: &[T]) -> OwnedSet<usize> {
         use Ordering::*;
         //
@@ -86,8 +95,12 @@ impl<T: PartialOrd> Column<T> {
     }
     ///
     /// Returns bounds of given value within internal dataset.
+    ///
+    /// # Panics
+    /// Panic occurs if `val` is a non-comparable value (e. g. _NaN_).
     pub(in crate::cache) fn get_bounds(&self, val: &T) -> Vec<Bound> {
         use Ordering::*;
+        //
         // walk through all middle values
         let iter = self
             .inflections
@@ -111,12 +124,16 @@ impl<T: PartialOrd> Column<T> {
         bounds
     }
     ///
-    /// Returns bounds of given value (`val`) placing in between elemnts of `vals`,
+    /// Returns bounds of given element (`val`) placing in between elemnts of `vals`,
     /// where `offset` represents the actual start index of `vals`.
-    /// Elements of `vals` are compared using [ApproxOrd] with given precision (`pr`).
     ///
     /// # Note
     /// If `vals` is not monotonic, the output is _meaningless_.
+    ///
+    /// # Panics
+    /// This method panics if at least one of the statements is true:
+    /// - `val` is a non-comparable value (e. g. _NaN_),
+    /// - `vals` contains a non-comparable element.
     fn get_bounds_of_monotonic(vals: &[T], val: &T, offset: usize) -> Vec<Bound> {
         let mut bounds = vec![];
         let dir = vals[0]
