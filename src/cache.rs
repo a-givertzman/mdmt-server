@@ -1,10 +1,21 @@
 mod bound;
 mod column;
 mod table;
+#[cfg(test)]
+#[path = "./tests/cache.rs"]
+mod tests;
 //
 use column::Column;
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
-use std::{io::BufRead, num::ParseFloatError, str::FromStr};
+use std::fs::File;
+use std::io::BufReader;
+use std::sync::OnceLock;
+use std::{
+    io::BufRead,
+    num::ParseFloatError,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use table::Table;
 //
 type OwnedSet<T> = std::sync::Arc<[T]>;
@@ -13,7 +24,22 @@ type Float = f64;
 /// Set of pre-loaded values.
 pub(crate) struct Cache<T> {
     dbgid: DbgId,
-    table: Table<T>,
+    path: PathBuf,
+    table: OnceLock<Result<Table<T>, StrErr>>,
+}
+//
+//
+
+impl<T> Cache<T> {
+    ///
+    /// Creates a new instance of [Cache].
+    pub(crate) fn new(parent: &DbgId, path: impl AsRef<Path>) -> Self {
+        Self {
+            dbgid: DbgId::with_parent(parent, "Cache"),
+            path: path.as_ref().to_owned(),
+            table: OnceLock::new(),
+        }
+    }
 }
 //
 //
@@ -23,21 +49,27 @@ impl<T: PartialOrd> Cache<T> {
     ///
     /// # Panics
     /// Panic occurs if reader produces a non-comparable value (e. g. _NaN_).
-    pub(crate) fn from_reader_with_precision(
-        parent: &DbgId,
-        reader: impl BufRead,
-    ) -> Result<Self, StrErr>
+    fn init(&self) -> Result<Table<T>, StrErr>
     where
         T: FromStr<Err = ParseFloatError> + Clone + Default,
     {
-        let dbgid = DbgId::with_parent(parent, "Cache");
-        let callee = "from_reader_with_precision";
+        let callee = "init";
+        let file = File::open(&self.path).map_err(|err| {
+            format!(
+                "{}.{} | Failed reading file='{}': {}",
+                self.dbgid,
+                callee,
+                self.path.display(),
+                err
+            )
+        })?;
+        let reader = BufReader::new(file);
         let mut vals = None;
         for (try_line, line_id) in reader.lines().zip(1..) {
             let line = try_line.map_err(|err| {
                 format!(
                     "{}.{} | Failed reading line={}: {}",
-                    dbgid, callee, line_id, err
+                    self.dbgid, callee, line_id, err
                 )
             })?;
             let ss = line.split_ascii_whitespace();
@@ -47,7 +79,7 @@ impl<T: PartialOrd> Cache<T> {
                 Some(vals) if vals.len() != ss_len => {
                     return Err(format!(
                         "{}.{} | Inconsistent dataset at line={}",
-                        dbgid, callee, line_id
+                        self.dbgid, callee, line_id
                     )
                     .into())
                 }
@@ -57,7 +89,7 @@ impl<T: PartialOrd> Cache<T> {
                 let val = s.parse().map_err(|err| {
                     format!(
                         "{}.{} | Failed parsing value at line={}: {}",
-                        dbgid, callee, line_id, err
+                        self.dbgid, callee, line_id, err
                     )
                 })?;
                 vals_mut[i].push(val);
@@ -66,14 +98,13 @@ impl<T: PartialOrd> Cache<T> {
         let cols = vals
             .map(|vals| {
                 let iter_over_cols = vals.into_iter().enumerate().map(|(id, vals)| {
-                    let dbgid = DbgId::with_parent(&dbgid, &format!("Column_{}", id));
+                    let dbgid = DbgId::with_parent(&self.dbgid, &format!("Column_{}", id));
                     Column::new(dbgid, vals)
                 });
                 OwnedSet::from_iter(iter_over_cols)
             })
             .unwrap_or_default();
-        let table = Table::new(&dbgid, cols);
-        Ok(Self { dbgid, table })
+        Ok(Table::new(&self.dbgid, cols))
     }
 }
 //
@@ -88,6 +119,15 @@ impl Cache<Float> {
     /// # Panics
     /// Panic occurs if `approx_vals` contains a non-comparable value (e. g. _NaN_).
     pub(crate) fn get(&self, approx_vals: &[Option<Float>]) -> Option<Vec<Vec<Float>>> {
-        self.table.get(approx_vals)
+        self.table
+            .get_or_init(|| self.init())
+            .as_ref()
+            .unwrap_or_else(|err| {
+                panic!(
+                    "{}.{} | Failed initializing Table: {}",
+                    self.dbgid, "get", err
+                )
+            })
+            .get(approx_vals)
     }
 }

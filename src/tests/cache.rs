@@ -1,7 +1,7 @@
 use crate::cache::Cache;
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_sync::services::entity::dbg_id::DbgId;
-use std::{fs::File, io::BufReader, sync::Once, time::Duration};
+use std::{sync::Once, time::Duration};
 use testing::stuff::max_test_duration::TestDuration;
 //
 //
@@ -21,27 +21,16 @@ fn init_each() -> () {}
 ///
 /// Test successfull creating of [Cache] instance based on file reader.
 #[test]
-fn from_reader_with_precision_ok() {
+fn init_cache_table_from_file() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let calee = "from_reader_with_precision_ok";
     let dbgid = DbgId("test Cache".to_string());
     log::debug!("\n{}", dbgid);
     let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
     test_duration.run().unwrap();
     // init
     //
-    let path = "src/tests/cache/tempdir/table-ok";
-    let file = File::open(path).unwrap_or_else(|err| {
-        panic!(
-            "{}.{} | Failed opening file='{}': {}",
-            dbgid, calee, path, err
-        )
-    });
-    let reader = BufReader::new(file);
-    //
-    ////
     #[rustfmt::skip]
     let test_data = [
         ([Some(0.0), Some(0.0), Some(0.0), Some(10.0)], Some(vec![vec![0.0, 0.0, 0.0, 10.0]])),
@@ -53,8 +42,8 @@ fn from_reader_with_precision_ok() {
         ([Some(0.6), Some(4.6), Some(3.6), Some(70.6)], Some(vec![vec![0.6, 4.6, 3.6, 70.6]])),
         ([Some(0.7), Some(0.7), Some(4.7), Some(80.7)], Some(vec![vec![0.7, 0.7, 4.7, 80.7]])),
     ];
-    let cache = Cache::from_reader_with_precision(&dbgid, reader)
-        .unwrap_or_else(|err| panic!("{}.{} | Failed creating Cache: {}", dbgid, calee, err));
+    let path = "src/tests/cache/tempdir/table-ok";
+    let cache = Cache::new(&dbgid, path);
     for (step, (vals, target)) in test_data.into_iter().enumerate() {
         let result = cache.get(&vals);
         println!(
@@ -72,11 +61,11 @@ fn from_reader_with_precision_ok() {
 //
 //
 #[test]
-fn from_reader_with_precision_inconsistent() {
+fn init_cache_table_from_inconsistent_files() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let callee = "from_reader_with_precision_inconsistent";
+    let callee = "init_cache_table_from_inconsistent_files";
     let dbgid = DbgId("test Cache".to_string());
     log::debug!("\n{}", dbgid);
     let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
@@ -86,14 +75,7 @@ fn from_reader_with_precision_inconsistent() {
         ("src/tests/cache/tempdir/table-inc-col", 8),
     ];
     for (path, target) in test_data {
-        let file = File::open(path).unwrap_or_else(|err| {
-            panic!(
-                "{}.{} | Failed opening file='{}': {}",
-                dbgid, callee, path, err
-            )
-        });
-        let reader = BufReader::new(file);
-        let result = Cache::<f64>::from_reader_with_precision(&dbgid, reader);
+        let result = Cache::<f64>::new(&dbgid, path).init();
         match result {
             Err(error) => {
                 let line_info = format!("line={}", target);
