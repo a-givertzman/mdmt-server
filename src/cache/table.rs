@@ -5,8 +5,6 @@ use sal_sync::services::entity::dbg_id::DbgId;
 
 //
 use crate::cache::{bound::Bound, column::Column, OwnedSet};
-
-use super::Float;
 ///
 /// Set of [Column]s.
 pub(in crate::cache) struct Table<T> {
@@ -24,7 +22,7 @@ impl<T> Table<T> {
 }
 //
 //
-impl Table<Float> {
+impl Table<f64> {
     ///
     /// Returns approximated values from table.
     ///
@@ -33,7 +31,7 @@ impl Table<Float> {
     ///
     /// # Panics
     /// Panic occurs if `approx_vals` contains a non-comparable value (e. g. _NaN_).
-    pub(in crate::cache) fn get(&self, approx_vals: &[Option<Float>]) -> Option<Vec<Vec<Float>>> {
+    pub(in crate::cache) fn get(&self, approx_vals: &[Option<f64>]) -> Option<Vec<Vec<f64>>> {
         (approx_vals.len() <= self.columns.len()).then(|| self.get_unchecked(approx_vals))
     }
     ///
@@ -46,7 +44,7 @@ impl Table<Float> {
     /// This method panics if at least one of the statements is true:
     /// - `approx_vals.len()` is greter than `self.columns.len()`,
     /// - `approx_vals` contains a non-comparable value (e. g. _NaN_) (see [Column::get_bounds]).
-    fn get_unchecked(&self, approx_vals: &[Option<Float>]) -> Vec<Vec<Float>> {
+    fn get_unchecked(&self, approx_vals: &[Option<f64>]) -> Vec<Vec<f64>> {
         let callee = "get_unchecked";
         assert!(
             self.columns.len() >= approx_vals.len(),
@@ -117,8 +115,8 @@ impl Table<Float> {
                     let mut vals = Vec::with_capacity(self.columns.len());
                     let len = end - start + 1;
                     for (col_id, col) in self.columns.iter().enumerate() {
-                        let sum = (start..=end).map(|row_id| col[row_id]).sum::<Float>();
-                        let val = sum / len as Float;
+                        let sum = (start..=end).map(|row_id| col[row_id]).sum::<f64>();
+                        let val = sum / len as f64;
                         vals.push(val);
                         log::trace!(
                             "{}.{} | Interpolation: col_id={} from row_id={} to row_id={} with result={}",

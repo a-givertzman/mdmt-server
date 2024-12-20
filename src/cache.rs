@@ -19,7 +19,6 @@ use std::{
 use table::Table;
 //
 type OwnedSet<T> = std::sync::Arc<[T]>;
-type Float = f64;
 ///
 /// Set of pre-loaded values.
 pub(crate) struct Cache<T> {
@@ -109,7 +108,7 @@ impl<T: PartialOrd> Cache<T> {
 }
 //
 //
-impl Cache<Float> {
+impl Cache<f64> {
     ///
     /// Returns approximated values based on given ones.
     ///
@@ -118,7 +117,7 @@ impl Cache<Float> {
     ///
     /// # Panics
     /// Panic occurs if `approx_vals` contains a non-comparable value (e. g. _NaN_).
-    pub(crate) fn get(&self, approx_vals: &[Option<Float>]) -> Option<Vec<Vec<Float>>> {
+    pub(crate) fn get(&self, approx_vals: &[Option<f64>]) -> Option<Vec<Vec<f64>>> {
         self.table
             .get_or_init(|| self.init())
             .as_ref()
