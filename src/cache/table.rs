@@ -48,6 +48,14 @@ impl Table<Float> {
     /// - `approx_vals` contains a non-comparable value (e. g. _NaN_).
     fn get_unchecked(&self, approx_vals: &[Option<Float>]) -> Vec<Vec<Float>> {
         let callee = "get_unchecked";
+        assert!(
+            self.columns.len() >= approx_vals.len(),
+            "{}.{} | columns.len={} < approx_vals.len={}",
+            self.dbgid,
+            callee,
+            self.columns.len(),
+            approx_vals.len()
+        );
         let bounds = {
             let mut val_bounds = vec![];
             for (id, val) in approx_vals
