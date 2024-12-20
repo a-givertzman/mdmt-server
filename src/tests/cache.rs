@@ -19,7 +19,7 @@ fn init_once() {
 #[allow(clippy::unused_unit)]
 fn init_each() -> () {}
 ///
-/// Test successfull creating of [Cache] instance based on file reader.
+/// Test successfull initializing of [Cache] instance.
 #[test]
 fn init_cache_table_from_file() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
@@ -58,8 +58,8 @@ fn init_cache_table_from_file() {
     }
     test_duration.exit();
 }
-//
-//
+///
+/// Test failure initializing of [Cache] instance.
 #[test]
 fn init_cache_table_from_inconsistent_files() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);

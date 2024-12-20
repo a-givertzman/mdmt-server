@@ -44,7 +44,7 @@ impl<T> Cache<T> {
 //
 impl<T: PartialOrd> Cache<T> {
     ///
-    /// Creates an instance using `reader` as the source of values.
+    /// Initializes Table reading `self.path` file.
     ///
     /// # Panics
     /// Panic occurs if reader produces a non-comparable value (e. g. _NaN_).
@@ -116,7 +116,10 @@ impl Cache<f64> {
     /// this method returns `None`. In contrast, the empty vector returns if no value found.
     ///
     /// # Panics
-    /// Panic occurs if `approx_vals` contains a non-comparable value (e. g. _NaN_).
+    /// This method panics if at least one of the statements is true:
+    /// - `approx_vals` contains a non-comparable value (e. g. _NaN_),
+    /// - reading file at `path` (see [Cache::new]) failed,
+    /// - data of the file is inconsistent (parsing float error or missed data).
     pub(crate) fn get(&self, approx_vals: &[Option<f64>]) -> Option<Vec<Vec<f64>>> {
         self.table
             .get_or_init(|| self.init())
