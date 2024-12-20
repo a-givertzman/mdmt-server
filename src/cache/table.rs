@@ -16,8 +16,8 @@ pub(in crate::cache) struct Table<T> {
 //
 //
 impl<T> Table<T> {
-    pub(in crate::cache) fn new(dbgid: &DbgId, cols: impl Into<OwnedSet<Column<T>>>) -> Self {
-        let dbgid = DbgId::with_parent(dbgid, "Table");
+    pub(in crate::cache) fn new(parent: &DbgId, cols: impl Into<OwnedSet<Column<T>>>) -> Self {
+        let dbgid = DbgId::with_parent(parent, "Table");
         let columns = cols.into();
         Self { dbgid, columns }
     }

@@ -24,9 +24,9 @@ fn bitand_test() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let dbg_id = "bitand_test";
-    log::debug!("\n{}", dbg_id);
-    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
+    let dbgid = "bitand_test";
+    log::debug!("\n{}", dbgid);
+    let test_duration = TestDuration::new(dbgid, Duration::from_secs(1));
     test_duration.run().unwrap();
     let test_data = [
         // 0

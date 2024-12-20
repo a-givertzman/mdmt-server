@@ -24,13 +24,13 @@ impl<T: PartialOrd> Cache<T> {
     /// # Panics
     /// Panic occurs if reader produces a non-comparable value (e. g. _NaN_).
     pub(crate) fn from_reader_with_precision(
-        dbgid: &DbgId,
+        parent: &DbgId,
         reader: impl BufRead,
     ) -> Result<Self, StrErr>
     where
         T: FromStr<Err = ParseFloatError> + Clone + Default,
     {
-        let dbgid = DbgId::with_parent(dbgid, "Cache");
+        let dbgid = DbgId::with_parent(parent, "Cache");
         let callee = "from_reader_with_precision";
         let mut vals = None;
         for (try_line, line_id) in reader.lines().zip(1..) {
