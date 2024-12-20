@@ -24,9 +24,9 @@ fn get_inflextion_test() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let dbg_id = "get_inflextion_test";
-    log::debug!("\n{}", dbg_id);
-    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
+    let dbgid = DbgId("get_inflextion_test".to_string());
+    log::debug!("\n{}", dbgid);
+    let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
     test_duration.run().unwrap();
     #[rustfmt::skip]
     let test_data = [
@@ -57,8 +57,9 @@ fn get_inflextion_test() {
         // need to handle that somehow?
         (vec![-1., 1., -0.5, 0.5, 0.], vec![0, 1, 2, 3, 4].into()),
     ];
+    let dbgid = DbgId::with_parent(&dbgid, "Column_0");
     for (step, (values, target)) in test_data.into_iter().enumerate() {
-        let result = Column::get_inflections(&values);
+        let result = Column::get_inflections(&dbgid, &values);
         println!(
             "step={} values={:?} result={:?} target={:?}",
             step, values, result, target
@@ -78,14 +79,15 @@ fn get_bounds_monotonic() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let dbg_id = "get_bounds_monotonic";
-    log::debug!("\n{}", dbg_id);
-    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
+    let dbgid = DbgId("get_bounds_monotonic".to_string());
+    log::debug!("\n{}", dbgid);
+    let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
     test_duration.run().unwrap();
     // init
     //                0   1   2   3   4   5   6   7    8    9   10   11
     let values = vec![0., 1., 2., 3., 2., 1., 0., 0., -1., -1., 10., 9.];
-    let column = Column::new(values);
+    let dbgid = DbgId::with_parent(&dbgid, "Column_0");
+    let column = Column::new(dbgid, values);
     //
     ////
     #[rustfmt::skip]
@@ -130,14 +132,15 @@ fn get_bounds_non_descresing() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let dbg_id = "get_bounds_non_descresing";
-    log::debug!("\n{}", dbg_id);
-    let test_duration = TestDuration::new(dbg_id, Duration::from_secs(1));
+    let dbgid = DbgId("get_bounds_non_descresing".to_string());
+    log::debug!("\n{}", dbgid);
+    let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
     test_duration.run().unwrap();
     // init
     //                0   1   2   3   4   5   6   7
     let values = vec![0., 1., 1., 1., 2., 2., 3., 4.];
-    let column = Column::new(values);
+    let dbgid = DbgId::with_parent(&dbgid, "Column_0");
+    let column = Column::new(dbgid, values);
     //
     ////
     #[rustfmt::skip]

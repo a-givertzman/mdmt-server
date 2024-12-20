@@ -49,7 +49,8 @@ fn get_unchecked() {
             let var_name = matrix[row_id][col_id];
             values.push(var_name);
         });
-        let column = Column::new(values);
+        let dbgid = DbgId::with_parent(&dbgid, &format!("Column_{}", col_id));
+        let column = Column::new(dbgid, values);
         columns.push(column);
     }
     let table = Table::new(&dbgid, columns);

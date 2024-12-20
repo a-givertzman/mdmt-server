@@ -65,7 +65,10 @@ impl<T: PartialOrd> Cache<T> {
         }
         let cols = vals
             .map(|vals| {
-                let iter_over_cols = vals.into_iter().map(|vals| Column::new(vals));
+                let iter_over_cols = vals.into_iter().enumerate().map(|(id, vals)| {
+                    let dbgid = DbgId::with_parent(&dbgid, &format!("Column_{}", id));
+                    Column::new(dbgid, vals)
+                });
                 OwnedSet::from_iter(iter_over_cols)
             })
             .unwrap_or_default();

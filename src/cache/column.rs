@@ -4,6 +4,7 @@ mod tests;
 //
 use super::OwnedSet;
 use crate::cache::bound::Bound;
+use sal_sync::services::entity::dbg_id::DbgId;
 use std::{cmp::Ordering, ops::Deref};
 ///
 /// Analyzed dataset, column of [Table].
@@ -15,6 +16,7 @@ use std::{cmp::Ordering, ops::Deref};
 pub(in crate::cache) struct Column<T> {
     inflections: OwnedSet<usize>,
     data: OwnedSet<T>,
+    dbgid: DbgId,
 }
 //
 //
@@ -24,13 +26,14 @@ impl<T: PartialOrd> Column<T> {
     ///
     /// # Panics
     /// Panic occurs if `values` contains a non-comparable value (e. g. _NaN_).
-    pub(in crate::cache) fn new<S>(values: S) -> Self
+    pub(in crate::cache) fn new<S>(dbgid: DbgId, values: S) -> Self
     where
         S: Into<OwnedSet<T>> + Deref<Target = [T]>,
     {
         Self {
-            inflections: Self::get_inflections(&values),
+            inflections: Self::get_inflections(&dbgid, &values),
             data: values.into(),
+            dbgid,
         }
     }
     ///
@@ -38,12 +41,13 @@ impl<T: PartialOrd> Column<T> {
     ///
     /// # Panics
     /// Panic occurs if `values` contains a non-comparable value (e. g. _NaN_).
-    fn get_inflections(values: &[T]) -> OwnedSet<usize> {
+    fn get_inflections(dbgid: &DbgId, values: &[T]) -> OwnedSet<usize> {
         use Ordering::*;
         //
         if values.is_empty() {
             return OwnedSet::from([]);
         }
+        let callee = "get_inflections";
         // inflection points
         let mut flex = vec![];
         // keep last flex direction
@@ -78,7 +82,14 @@ impl<T: PartialOrd> Column<T> {
                     }
                     _ => {}
                 },
-                _ => todo!("error handling of non-comparable value"),
+                _ => panic!(
+                    "{}.{} | Non-comparable value at position {}, {} or {}",
+                    dbgid,
+                    callee,
+                    m_id - 1,
+                    m_id,
+                    m_id + 1
+                ),
             }
         }
         // Include the first, ..
@@ -98,9 +109,13 @@ impl<T: PartialOrd> Column<T> {
     ///
     /// # Panics
     /// Panic occurs if `val` is a non-comparable value (e. g. _NaN_).
-    pub(in crate::cache) fn get_bounds(&self, val: &T) -> Vec<Bound> {
+    pub(in crate::cache) fn get_bounds(&self, val: &T) -> Vec<Bound>
+    where
+        T: std::fmt::Display,
+    {
         use Ordering::*;
         //
+        let callee = "get_bounds";
         // walk through all middle values
         let iter = self
             .inflections
@@ -113,7 +128,10 @@ impl<T: PartialOrd> Column<T> {
                         (first_vs_val, val_vs_last),
                         (Less | Equal, Less | Equal) | (Greater | Equal, Greater | Equal)
                     ),
-                    _ => todo!("error handling of non-comparable value"),
+                    _ => panic!(
+                        "{}.{} | `val`={} is a non-comparable value",
+                        self.dbgid, callee, val
+                    ),
                 }
             })
             .flat_map(|win| {
@@ -136,15 +154,8 @@ impl<T: PartialOrd> Column<T> {
     /// - `vals` contains a non-comparable element.
     fn get_bounds_of_monotonic(vals: &[T], val: &T, offset: usize) -> Vec<Bound> {
         let mut bounds = vec![];
-        let dir = vals[0]
-            .partial_cmp(&vals[vals.len() - 1])
-            .expect("TODO: error handling of non-comparable value");
-        let insert_id = vals.partition_point(|data_val| {
-            let cmp_result = data_val
-                .partial_cmp(val)
-                .expect("TODO: error handling of non-comparable value");
-            cmp_result == dir
-        });
+        let dir = vals[0].partial_cmp(&vals[vals.len() - 1]);
+        let insert_id = vals.partition_point(|data_val| data_val.partial_cmp(val) == dir);
         if insert_id == 0 {
             bounds.push(Bound::Single(offset));
         } else if insert_id == vals.len() {
@@ -152,7 +163,7 @@ impl<T: PartialOrd> Column<T> {
         } else if *val == vals[insert_id] {
             bounds.push(Bound::Single(insert_id + offset));
             match dir {
-                Ordering::Less | Ordering::Greater => {
+                Some(Ordering::Less | Ordering::Greater) => {
                     (1..)
                         .take_while(|i| {
                             vals.get(insert_id + i)
