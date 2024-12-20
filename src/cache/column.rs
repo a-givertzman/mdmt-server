@@ -143,15 +143,11 @@ impl<T: PartialOrd> Column<T> {
     }
     ///
     /// Returns bounds of given element (`val`) placing in between elemnts of `vals`,
-    /// where `offset` represents the actual start index of `vals`.
+    /// where `offset` represents the actual start index of `vals`. For internal use.
     ///
     /// # Note
-    /// If `vals` is not monotonic, the output is _meaningless_.
-    ///
-    /// # Panics
-    /// This method panics if at least one of the statements is true:
-    /// - `val` is a non-comparable value (e. g. _NaN_),
-    /// - `vals` contains a non-comparable element.
+    /// - If `vals` is not monotonic, the output is _meaningless_.
+    /// - This is an unsafe method: Caller _must garantee_ that `vals` and `val` are comparable values.
     fn get_bounds_of_monotonic(vals: &[T], val: &T, offset: usize) -> Vec<Bound> {
         let mut bounds = vec![];
         let dir = vals[0].partial_cmp(&vals[vals.len() - 1]);
