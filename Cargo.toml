@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git" }
+indexmap = "2.7.0"
 log = "^0.4"
+sal-3dlib = { git = "https://github.com/a-givertzman/rust-sal-3dlib.git", branch = "13-back-adopt-for-caching" }
+sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git", tag = "0.0.3" }
 
 [dev-dependencies]
 debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "0.0.1" }
