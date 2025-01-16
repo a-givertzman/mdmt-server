@@ -7,7 +7,7 @@ use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use std::path::Path;
 ///
 /// Ship object being model.
-pub struct Ship<A> {
+pub struct ShipModel<A> {
     dbgid: DbgId,
     hull_key: String,
     model_tree: ModelTree<A>,
@@ -15,7 +15,7 @@ pub struct Ship<A> {
 }
 //
 //
-impl<A> Ship<A>
+impl<A> ShipModel<A>
 where
     A: Clone + Send + 'static,
 {
