@@ -1,10 +1,9 @@
 #[cfg(test)]
 #[path = "../tests/cache/table.rs"]
 mod tests;
-use sal_sync::services::entity::dbg_id::DbgId;
-
 //
 use crate::cache::{bound::Bound, column::Column, OwnedSet};
+use sal_sync::services::entity::dbg_id::DbgId;
 ///
 /// Set of [Column]s.
 pub(in crate::cache) struct Table<T> {
