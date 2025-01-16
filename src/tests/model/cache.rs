@@ -1,4 +1,4 @@
-use crate::model::builder::FloatingPositionCacheBuilder;
+use crate::model::cache::FloatingPositionCacheBuilder;
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use indexmap::IndexMap;
 use sal_3dlib::fs::Reader;

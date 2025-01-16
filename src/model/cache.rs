@@ -1,3 +1,9 @@
+#[cfg(test)]
+#[path = "../tests/model/cache.rs"]
+mod tests;
+//
+use super::model_tree::ModelTree;
+use crate::cache::Cache;
 use indexmap::IndexMap;
 use sal_3dlib::{
     gmath::Vector,
@@ -18,6 +24,7 @@ use sal_sync::services::{
 use std::{
     fs::File,
     io::Write,
+    ops::Deref,
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -26,8 +33,68 @@ use std::{
     thread,
 };
 ///
-/// Dataset builder for Floating position cache (see [crate::cache::Cache]).
-pub struct FloatingPositionCacheBuilder<A> {
+/// Pre-calculated dataset for floating position algorithm.
+pub(super) struct FloatingPositionCache {
+    dbgid: DbgId,
+    path: PathBuf,
+    inner: Cache<f64>,
+}
+//
+//
+impl FloatingPositionCache {
+    ///
+    /// Creates a new instance of [FloatingPositionCache].
+    pub(super) fn new(parent: &DbgId, path: impl AsRef<Path>) -> Self {
+        let dbgid = DbgId::with_parent(parent, "FloatingPositionCache");
+        Self {
+            dbgid: dbgid.clone(),
+            path: path.as_ref().to_path_buf(),
+            inner: Cache::new(&dbgid, &path),
+        }
+    }
+    ///
+    /// Check whether the instance path is the same as provided `path`.
+    pub(super) fn same_path(&self, path: impl AsRef<Path>) -> bool {
+        self.path == path.as_ref()
+    }
+    ///
+    /// Creates a new instance of associated [builder].
+    ///
+    /// [builder]: FloatingPositionCacheBuilder
+    pub(super) fn builder<A>(
+        &self,
+        dbgid: &DbgId,
+        model_key: impl AsRef<str>,
+        model_tree: &ModelTree<A>,
+    ) -> FloatingPositionCacheBuilder<Option<A>>
+    where
+        A: Clone + Send + 'static,
+    {
+        FloatingPositionCacheBuilder::new(
+            dbgid,
+            &self.path,
+            model_key,
+            model_tree.deref().clone(),
+            [vec![], vec![], vec![]],
+            Arc::default(),
+        )
+    }
+}
+//
+//
+impl Deref for FloatingPositionCache {
+    type Target = Cache<f64>;
+    //
+    //
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+///
+/// Dataset builder for floating position [cache].
+///
+/// [cache]: FloatingPositionCache
+pub(super) struct FloatingPositionCacheBuilder<A> {
     dbgid: DbgId,
     output_file: PathBuf,
     model_key: String,
@@ -52,7 +119,7 @@ where
     ///   - `steps`\[0] - heel steps (in degrees),
     ///   - `steps`\[1] - trim steps (in degrees),
     ///   - `steps`\[2] - draught steps.
-    pub fn new(
+    pub(super) fn new(
         parent: &DbgId,
         output_file: impl AsRef<Path>,
         model_key: impl AsRef<str>,
@@ -75,7 +142,7 @@ where
     ///
     /// This method spawns a worker thread internally and returns its handler as result.
     /// Setting `exit` to _true_ at the caller side stops the worker thread.
-    pub fn build(self) -> Result<ServiceHandles<Result<(), StrErr>>, StrErr> {
+    pub(super) fn build(self) -> Result<ServiceHandles<Result<(), StrErr>>, StrErr> {
         let dbgid = DbgId(format!("{}.build", self.dbgid));
         log::info!("{} | Starting...", dbgid);
         match thread::Builder::new()
