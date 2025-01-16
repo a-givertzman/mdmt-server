@@ -112,13 +112,16 @@ where
     /// Crates a new instance.
     ///
     /// # Fields
-    /// - `model`:
-    ///   - `model`.0 - key string of target model,
-    ///   - `model`.1 - model tree,
+    /// - `output_file` - the file to store built result to,
+    /// - `model_key` - key string of target model in `models`,
+    /// - `models` - container of the target model and other related objects,
     /// - `steps`:
     ///   - `steps`\[0] - heel steps (in degrees),
     ///   - `steps`\[1] - trim steps (in degrees),
     ///   - `steps`\[2] - draught steps.
+    /// - `exit` - atomic flag to interrupt build process (see [build] for details).
+    ///
+    /// [build]: FloatingPositionCacheBuilder::build
     pub(super) fn new(
         parent: &DbgId,
         output_file: impl AsRef<Path>,
@@ -138,7 +141,7 @@ where
         }
     }
     ///
-    /// Builds the dataset and stores it into 'output_file'.
+    /// Builds the dataset and stores it into `self.output_file`.
     ///
     /// This method spawns a worker thread internally and returns its handler as result.
     /// Setting `exit` to _true_ at the caller side stops the worker thread.
@@ -169,7 +172,7 @@ where
     /// - `steps`\[1] - trim angle of each step,
     /// - `steps`\[2] - draught, vertical moving.
     ///
-    /// The target model by `model`.0 is a part of model tree stored in `model`.1.
+    /// The target model by `model_key` is a part of model tree stored in `models`.
     fn build_inner(self) -> Result<(), StrErr> {
         let dbgid = DbgId(format!("{}.build_inner", self.dbgid));
         let t_model = self.get_target_model()?;
@@ -237,7 +240,7 @@ where
         Ok(())
     }
     ///
-    /// Extracts model from `self.model`.
+    /// Extracts model from `self.models`.
     fn get_target_model(&self) -> Result<&Solid<A>, StrErr> {
         let dbgid = DbgId(format!("{}.get_target_model", self.dbgid));
         if let Shape::Solid(ref model) = self.models.get(&self.model_key).ok_or(StrErr(format!(
