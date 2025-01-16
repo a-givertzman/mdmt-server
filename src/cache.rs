@@ -21,7 +21,7 @@ use table::Table;
 type OwnedSet<T> = std::sync::Arc<[T]>;
 ///
 /// Set of pre-loaded values.
-pub(crate) struct Cache<T> {
+pub struct Cache<T> {
     dbgid: DbgId,
     path: PathBuf,
     table: OnceLock<Result<Table<T>, StrErr>>,
@@ -120,7 +120,7 @@ impl Cache<f64> {
     /// - `approx_vals` contains a non-comparable value (e. g. _NaN_),
     /// - reading file at `path` (see [Cache::new]) failed,
     /// - data of the file is inconsistent (parsing float error or missed data).
-    pub(crate) fn get(&self, approx_vals: &[Option<f64>]) -> Option<Vec<Vec<f64>>> {
+    pub fn get(&self, approx_vals: &[Option<f64>]) -> Option<Vec<Vec<f64>>> {
         self.table
             .get_or_init(|| self.init())
             .as_ref()
