@@ -8,8 +8,9 @@ use indexmap::IndexMap;
 use sal_3dlib::{
     gmath::Vector,
     ops::{
+        boolean::volume::AlgoMakerVolume,
         transform::{Rotate, Translate},
-        Polygon, Solidify,
+        Polygon,
     },
     props::{Center, Volume as VolumeProp},
     topology::{
@@ -197,20 +198,20 @@ where
                         let mut loc_y = Vector::unit_y();
                         if 0.0 != heel {
                             let heel_in_rad = heel.to_radians();
-                            model = model.rotated(w_model.center(), Vector::unit_x(), heel_in_rad);
+                            model = model.rotate(w_model.center(), Vector::unit_x(), heel_in_rad);
                             // once a rotation around oX happens, oY needs to get the rotation too,
                             // overwise oY remains global and doesn't match new `model`'s transformation
-                            loc_y = loc_y.rotated(Vector::unit_x(), heel_in_rad);
+                            loc_y = loc_y.rotate(Vector::unit_x(), heel_in_rad);
                         }
                         if 0.0 != trim {
-                            model = model.rotated(w_model.center(), loc_y, trim.to_radians());
+                            model = model.rotate(w_model.center(), loc_y, trim.to_radians());
                         }
                         if 0.0 != draught {
-                            model = model.translated(Vector::new(0.0, 0.0, -draught));
+                            model = model.translate(Vector::new(0.0, 0.0, -draught));
                         }
                         model
                     };
-                    Compound::solidify([w_model], [], [t_model])
+                    Compound::build([w_model], [], [t_model])
                         .map(|compound| {
                             compound
                                 .solids()
