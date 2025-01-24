@@ -1,12 +1,17 @@
-use crate::model::cache::FloatingPositionCacheBuilder;
+use crate::model::{
+    cache::{
+        floating_position_cache::{FloatingPositionCache, FloatingPositionCacheConf},
+        LocalCache,
+    },
+    model_tree::ModelTree,
+};
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
-use indexmap::IndexMap;
-use sal_3dlib::fs::Reader;
+use sal_3dlib::{props::Center, topology::Shape};
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use std::{
     fs::{self, File},
     io::{BufRead, BufReader, Read},
-    sync::{atomic::AtomicBool, Arc, Once},
+    sync::{Arc, Once},
     time::Duration,
 };
 use testing::stuff::max_test_duration::TestDuration;
@@ -33,46 +38,42 @@ fn init_each() -> () {}
 /// At the end of the test it tries (safely) remove it.
 /// Pay attention on loggin info (WARN level) to catch it fails cleaning up.
 #[test]
-fn build_floating_position_cache() {
+fn calculate_floating_position_cache() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let dbgid = DbgId("test cache Builder/build_floating_position_cache".to_string());
+    let dbgid = DbgId("test cache Builder/calculate_floating_position_cache".to_string());
     log::debug!("\n{}", dbgid);
     let test_duration = TestDuration::new(&dbgid, Duration::from_secs(300));
     test_duration.run().unwrap();
-    let model_path = "src/tests/model/assets/cube_1_1_1.step";
-    let target_path = "src/tests/model/assets/fpc_target";
-    let result_path = "src/tests/model/tmpdir/fpc_result";
-    // read STEP file to get model tree
-    // and turn it into map
-    let models = {
-        let models = Reader::read_step(model_path)
-            .unwrap_or_else(|err| panic!("Failed reading STEP file='{}': {}", model_path, err))
-            .into_vec::<()>()
-            .unwrap_or_else(|err| panic!("Failed getting vec from *tree*: {}", err));
-        IndexMap::from_iter(models)
-    };
     let model_key = "/cube_1_1_1_centered";
-    assert!(models.contains_key(model_key));
-    // build floating position cache
-    let handlers = FloatingPositionCacheBuilder::new(
-        &dbgid,
-        result_path,
-        model_key,
-        models,
-        [
-            // heel
-            (-10..=10).step_by(5).map(|n| n as f64).collect(),
-            // trim
-            (-10..=10).step_by(5).map(|n| n as f64).collect(),
-            // draught
-            vec![0.0, 0.25],
-        ],
-        Arc::new(AtomicBool::new(false)),
-    )
-    .build()
-    .unwrap_or_else(|err| panic!("Failed creating *handlers*: {}", err));
+    let model_path = "src/tests/model/cache/assets/cube_1_1_1.step";
+    let target_path = "src/tests/model/cache/assets/fpc_target";
+    let result_path = "src/tests/model/cache/tmpdir/fpc_result";
+    // create model tree with empty attribute for each model
+    let model_tree = ModelTree::<()>::new(&dbgid, model_path)
+        .build()
+        .unwrap_or_else(|err| panic!("Failing building *model_tree*: {}", err));
+    // set waterline init position to target model center
+    let waterline_position = model_tree
+        .get(model_key)
+        .and_then(|shape| match shape {
+            Shape::Solid(model) => Some(model.center().point()),
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("Expected Solid by model_key='{}'", model_key));
+    let conf = FloatingPositionCacheConf {
+        file_path: result_path.into(),
+        model_keys: vec![model_key.into()],
+        waterline_position,
+        heel_steps: (-10..=10).step_by(5).map(|n| n as f64).collect(),
+        trim_steps: (-10..=10).step_by(5).map(|n| n as f64).collect(),
+        draught_steps: vec![0.0, 0.25],
+    };
+    // spawn worker to calculate floating posiotion cache
+    let handlers = FloatingPositionCache::new(&dbgid, model_tree, conf)
+        .calculate(Arc::default())
+        .unwrap_or_else(|err| panic!("Failed creating *handlers*: {}", err));
     let mut errors = vec![];
     for (_, handler) in handlers {
         match handler.join() {
