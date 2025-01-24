@@ -313,10 +313,10 @@ impl<A: Clone> CalculatedFloatingPositionCache<A> {
                                 _ => return None,
                             })
                         })
-                        .try_for_each(|result| {
-                            result
-                                .map(|volumed| {
-                                    volumed
+                        .try_fold(0.0, |total_volume, build| {
+                            build.map(|volumed| {
+                                total_volume
+                                    + volumed
                                         .solids()
                                         .into_iter()
                                         .map(|t_model_part| {
@@ -329,18 +329,19 @@ impl<A: Clone> CalculatedFloatingPositionCache<A> {
                                                 .unwrap_or_default()
                                         })
                                         .sum::<f64>()
-                                })
-                                .and_then(|volume| {
-                                    writeln!(out_f, "{} {} {} {}", heel, trim, draught, volume)
-                                        .map_err(|err| {
-                                            StrErr(format!(
-                                                "{} | Writing to file='{}': {}",
-                                                dbgid,
-                                                self.file_path.display(),
-                                                err
-                                            ))
-                                        })
-                                })
+                            })
+                        })
+                        .and_then(|volume| {
+                            writeln!(out_f, "{} {} {} {}", heel, trim, draught, volume).map_err(
+                                |err| {
+                                    StrErr(format!(
+                                        "{} | Writing to file='{}': {}",
+                                        dbgid,
+                                        self.file_path.display(),
+                                        err
+                                    ))
+                                },
+                            )
                         })?;
                 }
             }
