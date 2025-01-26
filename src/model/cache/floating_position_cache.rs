@@ -149,7 +149,7 @@ impl<A: Clone + Send + 'static> LocalCache for FloatingPositionCache<A> {
 /// [FloatingPositionCache] configuration.
 pub struct FloatingPositionCacheConf {
     ///
-    /// Used for reading cache and storing newly calculated ones.
+    /// Used for reading cache and storing newly calculated ones.  !!! Is not specified in config !!!
     pub file_path: PathBuf,
     ///
     /// Models used for cache calculation.
