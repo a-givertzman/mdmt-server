@@ -42,7 +42,7 @@ impl<T> Cache<T> {
 //
 impl<T: PartialOrd> Cache<T> {
     ///
-    /// Initializes Table reading `self.path` file.
+    /// Initializes Table reading `self.path` file. - !!! It's not a file !!!
     ///
     /// # Panics
     /// Panic occurs if reader produces a non-comparable value (e. g. _NaN_).
