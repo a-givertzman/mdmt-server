@@ -1,4 +1,4 @@
-use crate::model::{
+use crate::ship_model::{
     cache::{
         floating_position_cache::{FloatingPositionCache, FloatingPositionCacheConf},
         LocalCache,

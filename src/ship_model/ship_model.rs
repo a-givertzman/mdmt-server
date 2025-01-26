@@ -1,5 +1,3 @@
-mod cache;
-mod model_tree;
 //
 use cache::{
     floating_position_cache::{FloatingPositionCache, FloatingPositionCacheConf},
@@ -17,7 +15,6 @@ use sal_3dlib::{
 };
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use std::{path::PathBuf, sync::Arc};
-use strum_macros::EnumIter;
 ///
 /// Defines relative position against an object.
 ///
@@ -26,26 +23,6 @@ use strum_macros::EnumIter;
 pub enum RelativePostion {
     Above,
     Under,
-}
-///
-/// Cache keys of [ShipModel] caches.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
-pub enum CacheKey {
-    ///
-    /// Points to [FloatingPositionCache].
-    FloatingPostion,
-}
-///
-/// [ShipModel] configuration.
-///
-/// It can be used to wrap configuration getting from an external source.
-pub struct ShipModelConf {
-    ///
-    /// File containing model structure (e. g. in STEP format).
-    pub model_path: PathBuf,
-    ///
-    /// [FloatingPositionCache] configuration.
-    pub floating_position_cache_conf: FloatingPositionCacheConf,
 }
 ///
 /// Ship object being model with the attribute of type `A`.
