@@ -59,6 +59,7 @@ impl<A> FloatingPositionCache<A> {
     const KEY: &'static str = "floating_position_cache";
     ///
     /// Creates a new instance.
+    /// - path - folder contains all cache files
     pub(in super::super) fn new(
         parent: &DbgId,
         model_tree: ModelTree<A>,
