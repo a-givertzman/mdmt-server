@@ -52,7 +52,7 @@ fn calculated_floating_position_cache() {
     let result_path = "src/tests/models/ship_model/local_cache/tmpdir/fpc_result";
     // create model tree with empty attribute for each model
     let model_tree = ModelTree::<()>::new(&dbgid, model_path)
-        .build()
+        .load()
         .unwrap_or_else(|err| panic!("Failing building *model_tree*: {}", err));
     // set waterline init position to target model center
     let waterline_position = model_tree

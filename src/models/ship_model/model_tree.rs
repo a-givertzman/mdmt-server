@@ -38,7 +38,7 @@ impl<A> ModelTree<A> {
     /// Builds the new instance.
     ///
     /// Internally it reads `self.path` and converts the result to the target representation.
-    pub(super) fn build(self) -> Result<Self, StrErr> {
+    pub(super) fn load(self) -> Result<Self, StrErr> {
         sal_3dlib::fs::Reader::read_step(&self.path)
             .map_err(|why| {
                 StrErr(format!(
