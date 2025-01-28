@@ -1,7 +1,7 @@
-use crate::ship_model::{
-    cache::{
-        floating_position_cache::{FloatingPositionCache, FloatingPositionCacheConf},
-        LocalCache,
+use crate::models::ship_model::{
+    local_cache::floating_position_cache::{
+        floating_position_cache_conf::FloatingPositionCacheConf, CalculatedFloatingPositionCache,
+        FloatingPositionCache,
     },
     model_tree::ModelTree,
 };
@@ -31,25 +31,25 @@ fn init_once() {
 #[allow(clippy::unused_unit)]
 fn init_each() -> () {}
 ///
-/// Test creating dataset for Floating postion cache.
+/// Test calculating dataset for Floating postion cache.
 ///
 /// # Notes
 /// During the test a file called `fpc_result` is created in ./tmpdir/.
 /// At the end of the test it tries (safely) remove it.
 /// Pay attention on loggin info (WARN level) to catch it fails cleaning up.
 #[test]
-fn calculate_floating_position_cache() {
+fn calculated_floating_position_cache() {
     DebugSession::init(LogLevel::Info, Backtrace::Short);
     init_once();
     init_each();
-    let dbgid = DbgId("test cache Builder/calculate_floating_position_cache".to_string());
+    let dbgid = DbgId("test cache Calculated_floating_position_cache".to_string());
     log::debug!("\n{}", dbgid);
     let test_duration = TestDuration::new(&dbgid, Duration::from_secs(300));
     test_duration.run().unwrap();
     let model_key = "/cube_1_1_1_centered";
-    let model_path = "src/tests/model/cache/assets/cube_1_1_1.step";
-    let target_path = "src/tests/model/cache/assets/fpc_target";
-    let result_path = "src/tests/model/cache/tmpdir/fpc_result";
+    let model_path = "src/tests/models/ship_model/local_cache/assets/cube_1_1_1.step";
+    let target_path = "src/tests/models/ship_model/local_cache/assets/fpc_target";
+    let result_path = "src/tests/models/ship_model/local_cache/tmpdir/fpc_result";
     // create model tree with empty attribute for each model
     let model_tree = ModelTree::<()>::new(&dbgid, model_path)
         .build()
@@ -63,17 +63,28 @@ fn calculate_floating_position_cache() {
         })
         .unwrap_or_else(|| panic!("Expected Solid by model_key='{}'", model_key));
     let conf = FloatingPositionCacheConf {
-        file_path: result_path.into(),
-        model_keys: vec![model_key.into()],
         waterline_position,
         heel_steps: (-10..=10).step_by(5).map(|n| n as f64).collect(),
         trim_steps: (-10..=10).step_by(5).map(|n| n as f64).collect(),
         draught_steps: vec![0.0, 0.25],
     };
-    // spawn worker to calculate floating posiotion cache
-    let handlers = FloatingPositionCache::new(&dbgid, model_tree, conf)
-        .calculate(Arc::default())
-        .unwrap_or_else(|err| panic!("Failed creating *handlers*: {}", err));
+    let heel_steps = conf.heel_steps.clone();
+    let trim_steps = conf.trim_steps.clone();
+    let draught_steps = conf.draught_steps.clone();
+    let handlers = CalculatedFloatingPositionCache::new(
+        &dbgid,
+        result_path.into(),
+        model_tree.iter().map(|(_, shape)| shape).cloned().collect(),
+        FloatingPositionCache::new(&dbgid, model_tree, result_path, conf)
+            .create_waterline()
+            .unwrap_or_else(|err| panic!("Failed creating *waterline*: {}", err)),
+        heel_steps,
+        trim_steps,
+        draught_steps,
+        Arc::default(),
+    )
+    .build()
+    .unwrap_or_else(|err| panic!("Failed creating *handlers*: {}", err));
     let mut errors = vec![];
     for (_, handler) in handlers {
         match handler.join() {

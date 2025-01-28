@@ -1,9 +1,10 @@
+pub mod floating_position_cache_conf;
 #[cfg(test)]
-#[path = "../../tests/model/cache/floating_position_cache.rs"]
+#[path = "../../../tests/models/ship_model/local_cache/floating_position_cache_test.rs"]
 mod tests;
 //
-use super::{Cache, LocalCache};
-use crate::ship_model::model_tree::ModelTree;
+use super::{super::ModelTree, Cache, LocalCache};
+use floating_position_cache_conf::FloatingPositionCacheConf;
 use sal_3dlib::{
     gmath::Vector,
     ops::{
@@ -24,7 +25,7 @@ use sal_sync::services::{
 use std::{
     fs::File,
     io::Write,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -35,7 +36,7 @@ use std::{
 /// Pre-calculated cache for floating position algorithm.
 ///
 /// See [FloatingPositionCacheConf] for more details about the fields.
-pub(in crate::ship_model) struct FloatingPositionCache<A> {
+pub(in super::super) struct FloatingPositionCache<A> {
     dbgid: DbgId,
     file_path: PathBuf,
     model_keys: Vec<String>,
@@ -53,37 +54,40 @@ pub(in crate::ship_model) struct FloatingPositionCache<A> {
 //
 //
 impl<A> FloatingPositionCache<A> {
+    //
+    //
+    const KEY: &'static str = "floating_position_cache";
     ///
     /// Creates a new instance.
-    pub(in crate::ship_model) fn new(
+    pub(in super::super) fn new(
         parent: &DbgId,
         model_tree: ModelTree<A>,
-        key: CacheKey,
-        path: &Path,
+        path: impl AsRef<Path>,
         conf: FloatingPositionCacheConf,
     ) -> Self {
         let dbgid = DbgId::with_parent(parent, "FloatingPositionCache");
+        let file_path = path.as_ref().join(Self::KEY);
         Self {
             model_tree,
-            model_keys: conf.model_keys,
+            model_keys: vec![],
             heel_steps: conf.heel_steps,
             waterline_position: conf.waterline_position,
             trim_steps: conf.trim_steps,
             draught_steps: conf.draught_steps,
-            cache: Cache::new(&dbgid, &conf.file_path),
-            file_path: path.join(key.as_str()),
+            cache: Cache::new(&dbgid, &file_path),
+            file_path,
             dbgid,
         }
     }
     ///
-    /// Creates a waterline model centered at `self.waterline_position`.
+    /// Creates a waterline object in 3D space centered at `self.waterline_position`.
     ///
-    /// The result model is used for calculating cache algorithm (see [FloatingPositionCache::calculate]).
+    /// The result object is used for calculating cache algorithm (see [FloatingPositionCache::calculate]).
     fn create_waterline<T>(&self) -> Result<Face<T>, StrErr> {
         let dbgid = DbgId(format!("{}.create_waterline_model", self.dbgid));
         let [x, y, z] = self.waterline_position;
-        // dynamic range could be built based on bounding box of target models behind self.model_keys,
-        // but now reserve big enough offsets, which should work with most models
+        // dynamic range could be built based on bounding box of target element behind self.model_keys,
+        // but now reserve big enough offsets, which should work with most elements
         let dx = 1000.0;
         let dy = 1000.0;
         //
@@ -154,7 +158,7 @@ impl<A: Clone + Send + 'static> LocalCache for FloatingPositionCache<A> {
 struct CalculatedFloatingPositionCache<A> {
     dbgid: DbgId,
     file_path: PathBuf,
-    models: Vec<Shape<A>>,
+    elements: Vec<Shape<A>>,
     waterline: Face<A>,
     heel_steps: Vec<f64>,
     trim_steps: Vec<f64>,
@@ -174,7 +178,7 @@ impl<A: Clone> CalculatedFloatingPositionCache<A> {
     fn new(
         parent: &DbgId,
         file_path: PathBuf,
-        models: Vec<Shape<A>>,
+        elements: Vec<Shape<A>>,
         waterline: Face<A>,
         heel_steps: Vec<f64>,
         trim_steps: Vec<f64>,
@@ -184,7 +188,7 @@ impl<A: Clone> CalculatedFloatingPositionCache<A> {
         Self {
             dbgid: DbgId::with_parent(parent, "CalculatedFloatingPositionCache"),
             file_path,
-            models,
+            elements,
             waterline,
             heel_steps,
             trim_steps,
@@ -247,35 +251,35 @@ impl<A: Clone> CalculatedFloatingPositionCache<A> {
                     }
                     // make a clone of origin waterline and transform it
                     // according to heel, trim, and draught values
-                    let w_model = &{
-                        let mut model = self.waterline.clone();
+                    let w_obj = &{
+                        let mut obj = self.waterline.clone();
                         let origin = self.waterline.center();
                         let mut loc_y = Vector::unit_y();
                         if 0.0 != heel {
                             let heel_in_rad = heel.to_radians();
-                            model = model.rotate(origin.clone(), Vector::unit_x(), heel_in_rad);
+                            obj = obj.rotate(origin.clone(), Vector::unit_x(), heel_in_rad);
                             // once a rotation around oX happens, oY needs to get the rotation too,
-                            // overwise oY remains global and doesn't match new `model`'s transformation
+                            // overwise oY remains global and doesn't match new `obj`'s transformation
                             loc_y = loc_y.rotate(Vector::unit_x(), heel_in_rad);
                         }
                         if 0.0 != trim {
-                            model = model.rotate(origin, loc_y, trim.to_radians());
+                            obj = obj.rotate(origin, loc_y, trim.to_radians());
                         }
                         if 0.0 != draught {
-                            model = model.translate(Vector::new(0.0, 0.0, -draught));
+                            obj = obj.translate(Vector::new(0.0, 0.0, -draught));
                         }
-                        model
+                        obj
                     };
-                    self.models
+                    self.elements
                         .iter()
-                        .filter_map(|t_model| {
+                        .filter_map(|elmnt| {
                             // get compound as result of volume algorithm
-                            // applied to waterline and each target model
+                            // applied to waterline and each target element
                             // (taking into account its shape type)
-                            Some(match t_model {
-                                Shape::Face(t_model) => Compound::build([w_model, t_model], [], []),
-                                Shape::Shell(t_model) => Compound::build([w_model], [t_model], []),
-                                Shape::Solid(t_model) => Compound::build([w_model], [], [t_model]),
+                            Some(match elmnt {
+                                Shape::Face(elmnt) => Compound::build([w_obj, elmnt], [], []),
+                                Shape::Shell(elmnt) => Compound::build([w_obj], [elmnt], []),
+                                Shape::Solid(elmnt) => Compound::build([w_obj], [], [elmnt]),
                                 _ => return None,
                             })
                         })
@@ -285,13 +289,13 @@ impl<A: Clone> CalculatedFloatingPositionCache<A> {
                                     + volumed
                                         .solids()
                                         .into_iter()
-                                        .map(|t_model_part| {
-                                            let [.., model_part_z] = t_model_part.center().point();
-                                            let [.., waterline_z] = w_model.center().point();
-                                            // Only calculate volume if volumed part is below waterline.
+                                        .map(|elmnt| {
+                                            let [.., elmnt_z] = elmnt.center().point();
+                                            let [.., waterline_z] = w_obj.center().point();
+                                            // Only calculate volume if volumed element is below waterline.
                                             // Put 0.0 if it's not for consistent.
-                                            (model_part_z < waterline_z)
-                                                .then(|| t_model_part.volume())
+                                            (elmnt_z < waterline_z)
+                                                .then(|| elmnt.volume())
                                                 .unwrap_or_default()
                                         })
                                         .sum::<f64>()

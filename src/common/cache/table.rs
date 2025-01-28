@@ -1,19 +1,21 @@
 #[cfg(test)]
-#[path = "../tests/cache/table.rs"]
+#[path = "../../tests/common/cache/table_test.rs"]
 mod tests;
 //
-use crate::cache::{bound::Bound, column::Column, OwnedSet};
+use super::{bound::Bound, column::Column, OwnedSet};
 use sal_sync::services::entity::dbg_id::DbgId;
 ///
 /// Set of [Column]s.
-pub(in crate::cache) struct Table<T> {
+pub(super) struct Table<T> {
     dbgid: DbgId,
     columns: OwnedSet<Column<T>>,
 }
 //
 //
 impl<T> Table<T> {
-    pub(in crate::cache) fn new(parent: &DbgId, cols: impl Into<OwnedSet<Column<T>>>) -> Self {
+    ///
+    /// Creates a new instance.
+    pub(super) fn new(parent: &DbgId, cols: impl Into<OwnedSet<Column<T>>>) -> Self {
         let dbgid = DbgId::with_parent(parent, "Table");
         let columns = cols.into();
         Self { dbgid, columns }
@@ -30,7 +32,7 @@ impl Table<f64> {
     ///
     /// # Panics
     /// Panic occurs if `approx_vals` contains a non-comparable value (e. g. _NaN_).
-    pub(in crate::cache) fn get(&self, approx_vals: &[Option<f64>]) -> Option<Vec<Vec<f64>>> {
+    pub(super) fn get(&self, approx_vals: &[Option<f64>]) -> Option<Vec<Vec<f64>>> {
         (approx_vals.len() <= self.columns.len()).then(|| self.get_unchecked(approx_vals))
     }
     ///

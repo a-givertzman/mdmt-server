@@ -3,22 +3,24 @@ use sal_3dlib::topology::Shape;
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use std::path::{Path, PathBuf};
 ///
-/// Internal structure of [super::ShipModel] represented as tree.
+/// Internal structure of [super::ShipModel], the collection of its 3D elements.
+///
+/// All the elements have the same attribute type - A.
+/// Note though that `self.models` contains values, which attribute type is Option<A>.
+/// This allows to do lazy attribute assigment by demand.
 #[derive(Clone)]
 pub(super) struct ModelTree<A> {
-    //
-    //
     dbgid: DbgId,
     ///
-    /// Source file.
+    /// Source file in STEP format.
     path: PathBuf,
     ///
-    /// Actual model representation.
+    /// Actual representation of the model structure.
     ///
-    /// In the current version the model is considered to have one or more parts.
-    /// If a part has a name, this name concatinated with the full path from the root is used as the key.
-    /// The model part itself becomes the value of the key.
-    models: IndexMap<String, Shape<Option<A>>>,
+    /// In the current version the model is considered to have one or more elements.
+    /// If an element has a name, this name concatinated with the full path from the root is used as the key.
+    /// The model element itself becomes the value of the key.
+    elements: IndexMap<String, Shape<Option<A>>>,
 }
 //
 //
@@ -29,7 +31,7 @@ impl<A> ModelTree<A> {
         Self {
             dbgid: DbgId::with_parent(parent, "ModelTree.new"),
             path: path.as_ref().to_path_buf(),
-            models: IndexMap::new(),
+            elements: IndexMap::new(),
         }
     }
     ///
@@ -54,24 +56,24 @@ impl<A> ModelTree<A> {
                     ))
                 })
             })
-            .map(|models| Self {
-                models: models.into_iter().collect(),
+            .map(|elmnts| Self {
+                elements: elmnts.into_iter().collect(),
                 ..self
             })
     }
     ///
     /// Return an iterator over the key-value pairs of the map, in their order.
     pub(super) fn iter(&self) -> indexmap::map::Iter<'_, String, Shape<Option<A>>> {
-        self.models.iter()
+        self.elements.iter()
     }
     ///
     /// Return a reference to the value stored for `key`, if it is present, else `None`.
     pub(super) fn get(&self, key: impl AsRef<str>) -> Option<&Shape<Option<A>>> {
-        self.models.get(key.as_ref())
+        self.elements.get(key.as_ref())
     }
     ///
     /// Return `true` if an equivalent to `key` exists in the map.
     pub(super) fn contains_key(&self, key: impl AsRef<str>) -> bool {
-        self.models.contains_key(key.as_ref())
+        self.elements.contains_key(key.as_ref())
     }
 }

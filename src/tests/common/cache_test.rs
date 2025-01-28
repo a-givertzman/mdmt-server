@@ -1,4 +1,4 @@
-use crate::cache::Cache;
+use crate::common::cache::Cache;
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_sync::services::entity::dbg_id::DbgId;
 use std::{sync::Once, time::Duration};
@@ -42,7 +42,7 @@ fn init_cache_table_from_file() {
         ([Some(0.6), Some(4.6), Some(3.6), Some(70.6)], Some(vec![vec![0.6, 4.6, 3.6, 70.6]])),
         ([Some(0.7), Some(0.7), Some(4.7), Some(80.7)], Some(vec![vec![0.7, 0.7, 4.7, 80.7]])),
     ];
-    let path = "src/tests/cache/tempdir/table-ok";
+    let path = "src/tests/common/cache/assets/table-ok";
     let cache = Cache::new(&dbgid, path);
     for (step, (vals, target)) in test_data.into_iter().enumerate() {
         let result = cache.get(&vals);
@@ -71,8 +71,8 @@ fn init_cache_table_from_inconsistent_files() {
     let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
     test_duration.run().unwrap();
     let test_data = [
-        ("src/tests/cache/tempdir/table-inc-row", 6),
-        ("src/tests/cache/tempdir/table-inc-col", 8),
+        ("src/tests/common/cache/assets/table-inc-row", 6),
+        ("src/tests/common/cache/assets/table-inc-col", 8),
     ];
     for (path, target) in test_data {
         let result = Cache::<f64>::new(&dbgid, path).init();

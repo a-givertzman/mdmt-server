@@ -1,5 +1,5 @@
-mod cache;
-mod ship_model;
+mod common;
+mod models;
 //
 fn main() {
     println!("Hello, world!");

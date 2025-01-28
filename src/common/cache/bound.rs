@@ -1,12 +1,12 @@
 #[cfg(test)]
-#[path = "../tests/cache/bound.rs"]
+#[path = "../../tests/common/cache/bound_test.rs"]
 mod tests;
 //
 use std::ops::BitAnd;
 ///
 /// Represents bound(s) of element within the collection.
 #[derive(PartialEq, Clone, Copy, Debug)]
-pub(in crate::cache) enum Bound {
+pub(super) enum Bound {
     ///
     /// No bound.
     None,

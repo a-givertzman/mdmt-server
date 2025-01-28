@@ -1,9 +1,14 @@
+//!
+//! The representation of the ship in terms of its 3D elements.
 //
-use cache::{
-    floating_position_cache::{FloatingPositionCache, FloatingPositionCacheConf},
-    LocalCache,
-};
+pub mod local_cache;
+mod model_tree;
+pub mod ship_model_conf;
+//
 use indexmap::{IndexMap, IndexSet};
+use local_cache::{
+    cache_key::CacheKey, floating_position_cache::FloatingPositionCache, LocalCache,
+};
 use model_tree::ModelTree;
 use sal_3dlib::{
     ops::boolean::volume::AlgoMakerVolume,
@@ -14,29 +19,29 @@ use sal_3dlib::{
     },
 };
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
-use std::{path::PathBuf, sync::Arc};
+use ship_model_conf::ShipModelConf;
+use std::sync::Arc;
 ///
-/// Defines relative position against an object.
+/// Defines relative position of a 3D object.
 ///
-/// Considered to be used to filter out [ShipModel] parts.
+/// Considered to be used to filter out [ShipModel] elements.
 /// See [ShipModel::subvolume] to find an example of use.
 pub enum RelativePostion {
     Above,
     Under,
 }
 ///
-/// Ship object being model with the attribute of type `A`.
+/// Ship object represented as a collection of its 3D elements all with attributes of type `A`.
 ///
 /// See [sal_3dlib::props::Attributes] to get more details about what the attribute type is.
 pub struct ShipModel<A> {
-    //
-    //
     dbgid: DbgId,
     ///
-    /// Inner model structure.
+    /// Privides access to structure of the 3D element by keys.
     model_tree: ModelTree<A>,
     ///
-    /// Collection of all caches used by the model.
+    /// Provides a number of calculations:
+    /// - Floating position (see [FloatingPositionCache]).
     caches: IndexMap<CacheKey, Box<dyn LocalCache>>,
 }
 //
@@ -57,18 +62,39 @@ impl<A: Clone + Send + 'static> ShipModel<A> {
             Box::new(FloatingPositionCache::new(
                 &dbgid,
                 model_tree,
+                conf.cache_dir,
                 conf.floating_position_cache_conf,
             )),
         );
         ship_model
     }
     ///
-    /// Returns model parts touched by `waterline` and filtered against [RelativePostion].
+    /// Returns model elements touched by `waterline` and filtered by [RelativePostion].
     ///
-    /// The algorithm uses those parts of the `self.model_tree`, which are specified in `keys`.
-    /// If `keys` is empty it's considered to use all model parts.
-    /// _Note_ that in the both cases only those parts are used, which types can make volume.
+    /// The algorithm uses those elements of the `self.model_tree`, which are specified in `keys`.
+    /// If `keys` is empty it's considered to use all model elements.
+    /// _Note_ that in the both cases only those elements are used, which types can make volume.
     /// In particular, these types are [Face]s, [Shell]s, and [Solid]s.
+    ///
+    /// # Examples
+    /// ```
+    /// use sal_3dlib::topology::shape::Face;
+    /// use sal_sync::services::entity::error::str_err::StrErr;
+    /// //
+    /// // waterline constructor that creates a face (kind of plane)
+    /// // based on x, y, and z coordinates - the waterline center
+    /// fn create_waterline<T>(x: f64, y: f64, z: f64) -> Face<T> {
+    ///     /* ... */
+    /// }
+    /// //
+    /// //
+    /// fn algorithm<T>(ship_model: &ShipModel<T>) -> Result<(), StrErr> {
+    ///     let waterline = create_waterline(0.0, 0.0, 0.0);
+    ///     // split an element of the target ship model (consider there is one called 'hull')
+    ///     // and filter result elements to get those, which are above created waterline plane
+    ///     let _ = ship_model.subvolume(&["hull"], &waterline, RelativePostion::Above)?;
+    /// }
+    /// ```
     ///
     /// [Shell]: sal_3dlib::topology::shape::Shell
     /// [Solid]: sal_3dlib::topology::shape::Solid
@@ -82,7 +108,7 @@ impl<A: Clone + Send + 'static> ShipModel<A> {
         // pop up warning if a key is not present in `self.model_key`
         for key in keys {
             if !self.model_tree.contains_key(key) {
-                log::warn!("{} | No model found for key='{}'", dbgid, key);
+                log::warn!("{} | No element found for key='{}'", dbgid, key);
             }
         }
         // defines whether the key should be taken
@@ -90,30 +116,30 @@ impl<A: Clone + Send + 'static> ShipModel<A> {
         let [.., waterline_z] = waterline.center().point();
         self.model_tree
             .iter()
-            .filter_map(|(key, model)| {
-                Some(match model {
-                    Shape::Face(model) if should_volume(key) => {
-                        Compound::build([waterline, model], [], [])
+            .filter_map(|(key, elmnt)| {
+                Some(match elmnt {
+                    Shape::Face(elmnt) if should_volume(key) => {
+                        Compound::build([waterline, elmnt], [], [])
                     }
-                    Shape::Shell(model) if should_volume(key) => {
-                        Compound::build([waterline], [model], [])
+                    Shape::Shell(elmnt) if should_volume(key) => {
+                        Compound::build([waterline], [elmnt], [])
                     }
-                    Shape::Solid(model) if should_volume(key) => {
-                        Compound::build([waterline], [], [model])
+                    Shape::Solid(elmnt) if should_volume(key) => {
+                        Compound::build([waterline], [], [elmnt])
                     }
                     _ => return None,
                 })
             })
-            .try_fold(vec![], |mut shapes, build| {
-                let model_part = build?;
-                let [.., model_part_z] = model_part.center().point();
+            .try_fold(vec![], |mut elmnts, build| {
+                let elmnt = build?;
+                let [.., elmnt_z] = elmnt.center().point();
                 if match relative_position {
-                    RelativePostion::Above => model_part_z > waterline_z,
-                    RelativePostion::Under => model_part_z < waterline_z,
+                    RelativePostion::Above => elmnt_z > waterline_z,
+                    RelativePostion::Under => elmnt_z < waterline_z,
                 } {
-                    shapes.push(Shape::Compound(model_part));
+                    elmnts.push(Shape::Compound(elmnt));
                 }
-                Ok(shapes)
+                Ok(elmnts)
             })
     }
     ///
@@ -122,9 +148,26 @@ impl<A: Clone + Send + 'static> ShipModel<A> {
     /// The field `caches` contains cache keys to update.
     /// Remaining it empty builds and reloads all the caches.
     ///
+    /// Note that it may take some time to complete
+    /// due to the size of datasets and algorithm complexity.
+    ///
     /// # Errors
     /// Internally it creates worker threads while building.
     /// The result error is a collection of all failed worker errors joined by '\n'.
+    ///
+    /// # Examples
+    /// ```
+    /// fn explaination(ship_model: &mut ShipModel<()>) {
+    ///     // reload all caches used by `ship_model`
+    ///     if let Err(why) = ship_model.update_caches(&[]) {
+    ///         println!("Failed to update ship model caches: {}", why);
+    ///     }
+    ///     // reload only the floating position cache
+    ///     if let Err(why) = ship_model.update_caches(&[CacheKey::FloatingPostion]) {
+    ///         println!("Failed to update the floating position cache: {}", why);
+    ///     }
+    /// }
+    /// ```
     pub fn update_caches(&mut self, caches: &[&CacheKey]) -> Result<(), StrErr> {
         // start wokers to calculate required caches
         let handlers = {
