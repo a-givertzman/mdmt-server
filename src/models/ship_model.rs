@@ -3,6 +3,7 @@
 //
 pub mod local_cache;
 mod model_tree;
+pub mod relative_position;
 pub mod ship_model_conf;
 //
 use indexmap::{IndexMap, IndexSet};
@@ -10,6 +11,7 @@ use local_cache::{
     cache_key::CacheKey, floating_position_cache::FloatingPositionCache, LocalCache,
 };
 use model_tree::ModelTree;
+use relative_position::RelativePostion;
 use sal_3dlib::{
     ops::boolean::volume::AlgoMakerVolume,
     props::Center,
@@ -18,15 +20,6 @@ use sal_3dlib::{
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use ship_model_conf::ShipModelConf;
 use std::sync::Arc;
-///
-/// Defines relative position of a 3D object.
-///
-/// Considered to be used to filter out [ShipModel] elements.
-/// See [ShipModel::subvolume] to find an example of use.
-pub enum RelativePostion {
-    Above,
-    Under,
-}
 ///
 /// Ship object represented as a collection of its 3D elements all with attributes of type `A`.
 ///
