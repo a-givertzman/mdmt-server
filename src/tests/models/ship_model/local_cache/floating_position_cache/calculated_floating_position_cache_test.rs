@@ -47,9 +47,12 @@ fn calculated_floating_position_cache() {
     let test_duration = TestDuration::new(&dbgid, Duration::from_secs(300));
     test_duration.run().unwrap();
     let model_key = "/cube_1_1_1_centered";
-    let model_path = "src/tests/models/ship_model/local_cache/assets/cube_1_1_1.step";
-    let target_path = "src/tests/models/ship_model/local_cache/assets/fpc_target";
-    let result_path = "src/tests/models/ship_model/local_cache/tmpdir/fpc_result";
+    let model_path =
+        "src/tests/models/ship_model/local_cache/floating_position_cache/assets/cube_1_1_1.step";
+    let target_path =
+        "src/tests/models/ship_model/local_cache/floating_position_cache/assets/fpc_target";
+    let result_path =
+        "src/tests/models/ship_model/local_cache/floating_position_cache/tmpdir/fpc_result";
     // create model tree with empty attribute for each model
     let model_tree = ModelTree::<()>::new(&dbgid, model_path)
         .load()
