@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use sal_3dlib::topology::Shape;
+use sal_3dlib::topology::shape::Shape;
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use std::path::{Path, PathBuf};
 ///

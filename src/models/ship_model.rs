@@ -13,10 +13,7 @@ use model_tree::ModelTree;
 use sal_3dlib::{
     ops::boolean::volume::AlgoMakerVolume,
     props::Center,
-    topology::{
-        shape::{Compound, Face},
-        Shape,
-    },
+    topology::shape::{compound::Compound, face::Face, Shape},
 };
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use ship_model_conf::ShipModelConf;

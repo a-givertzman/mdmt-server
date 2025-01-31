@@ -6,7 +6,7 @@ use crate::models::ship_model::{
     model_tree::ModelTree,
 };
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
-use sal_3dlib::{props::Center, topology::Shape};
+use sal_3dlib::{props::Center, topology::shape::Shape};
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use std::{
     fs::{self, File},

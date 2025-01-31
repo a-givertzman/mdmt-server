@@ -6,15 +6,14 @@ mod tests;
 use super::{super::ModelTree, Cache, LocalCache};
 use floating_position_cache_conf::FloatingPositionCacheConf;
 use sal_3dlib::{
-    gmath::Vector,
-    ops::{
-        boolean::volume::AlgoMakerVolume,
-        transform::{Rotate, Translate},
-        Polygon,
-    },
+    gmath::vector::Vector,
+    ops::transform::{Rotate, Translate},
     props::{Center, Volume},
-    topology::{
-        shape::{compound::Solids, Compound, Face, Vertex, Wire},
+    topology::shape::{
+        compound::{AlgoMakerVolume, Compound, Solids},
+        face::Face,
+        vertex::Vertex,
+        wire::{Polygon, Wire},
         Shape,
     },
 };
