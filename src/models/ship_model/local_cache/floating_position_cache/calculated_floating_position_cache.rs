@@ -3,11 +3,10 @@
 mod tests;
 use sal_3dlib::{
     gmath::vector::Vector,
-    ops::transform::{Rotate, Translate},
     props::{Center, Volume},
     topology::shape::{
         compound::{AlgoMakerVolume, Compound, Solids},
-        face::Face,
+        face::{Face, Rotate, Translate},
         Shape,
     },
 };

@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 indexmap = "^2.7"
 log = "^0.4"
-sal-3dlib = { git = "https://github.com/a-givertzman/rust-sal-3dlib.git", tag = "0.0.6" }
+sal-3dlib = { git = "https://github.com/a-givertzman/rust-sal-3dlib.git", tag = "0.0.7" }
 sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git", tag = "0.0.3" }
 strum = "0.26.3"
 strum_macros = "0.26.4"

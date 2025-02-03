@@ -13,9 +13,12 @@ use local_cache::{
 use model_tree::ModelTree;
 use relative_position::RelativePostion;
 use sal_3dlib::{
-    ops::boolean::volume::AlgoMakerVolume,
     props::Center,
-    topology::shape::{compound::Compound, face::Face, Shape},
+    topology::shape::{
+        compound::{AlgoMakerVolume, Compound},
+        face::Face,
+        Shape,
+    },
 };
 use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr};
 use ship_model_conf::ShipModelConf;
