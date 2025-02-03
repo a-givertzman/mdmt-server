@@ -1,19 +1,17 @@
 #[cfg(test)]
-#[path = "../tests/cache/column.rs"]
+#[path = "../../tests/common/cache/column_test.rs"]
 mod tests;
 //
+use super::bound::Bound;
 use super::OwnedSet;
-use crate::cache::bound::Bound;
 use sal_sync::services::entity::dbg_id::DbgId;
 use std::{cmp::Ordering, ops::Deref};
 ///
-/// Analyzed dataset, column of [Table].
+/// Analyzed dataset, column of a [super::Table] instance.
 ///
 /// A dataset is _analyzed_ if all its inflection points are defined.
-///
-/// [Table]: crate::cache::table::Table
 #[derive(Clone, Debug)]
-pub(in crate::cache) struct Column<T> {
+pub(super) struct Column<T> {
     inflections: OwnedSet<usize>,
     data: OwnedSet<T>,
     dbgid: DbgId,
@@ -26,7 +24,7 @@ impl<T: PartialOrd> Column<T> {
     ///
     /// # Panics
     /// Panic occurs if `values` contains a non-comparable value (e. g. _NaN_).
-    pub(in crate::cache) fn new<S>(dbgid: DbgId, values: S) -> Self
+    pub(super) fn new<S>(dbgid: DbgId, values: S) -> Self
     where
         S: Into<OwnedSet<T>> + Deref<Target = [T]>,
     {
@@ -109,7 +107,7 @@ impl<T: PartialOrd> Column<T> {
     ///
     /// # Panics
     /// Panic occurs if `val` is a non-comparable value (e. g. _NaN_).
-    pub(in crate::cache) fn get_bounds(&self, val: &T) -> Vec<Bound>
+    pub(super) fn get_bounds(&self, val: &T) -> Vec<Bound>
     where
         T: std::fmt::Display,
     {
